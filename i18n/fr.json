@@ -1,0 +1,53 @@
+{
+  "onboarding": {
+    "step1_title": "Comment t'appelles-tu ?",
+    "step1_subtitle": "On va faire connaissance.",
+    "step1_placeholder": "Ton prénom",
+    
+    "step2_title": "Enchanté {{name}}, comment te sens-tu ?",
+    "mood_demotivated": "Démotivé(e)",
+    "mood_anxious": "Anxieux(se)",
+    "mood_tired": "Fatigué(e)",
+    "mood_ready": "Prêt(e) à foncer",
+    
+    "step3_title": "Quel est ton objectif principal ?",
+    "step3_placeholder": "Ex: Être plus régulier, réduire mon stress...",
+    
+    "step4_title": "Choisis un domaine",
+    "cat_mental": "Santé Mentale",
+    "cat_productivity": "Productivité",
+    "cat_physical": "Forme Physique",
+    "cat_career": "Carrière",
+    
+    "step5_title": "Quand veux-tu prendre 5 min pour toi ?",
+    "step5_subtitle": "On t'enverra un petit rappel motivant.",
+    "time_morning": "🌅 Matin (08:00)",
+    "time_noon": "🌞 Midi (12:00)",
+    "time_evening": "🌙 Soir (20:00)",
+    
+    "loading_title": "Création de ton espace {{name}}...",
+    "loading_subtitle": "Personnalisation de l'expérience...",
+    
+    "btn_continue": "Continuer",
+    "btn_finish": "Terminer"
+  },
+  "dashboard": {
+    "greeting": "Bonjour, {{name}}",
+    "greeting_evening": "Bonsoir, {{name}}",
+    "focus_title": "Ton Objectif Prioritaire",
+    "daily_quote": "Citation du jour",
+    "quote_text": "Le seul voyage impossible est celui que tu ne commences jamais.",
+    "feeling_question": "Toujours {{mood}} ?",
+    "check_in": "Refaire un point"
+  },
+  "journal": {
+    "tab_title": "Journal",
+    "today_title": "Journal du jour",
+    "placeholder": "Qu'as-tu en tête aujourd'hui ? Écris sans te juger...",
+    "save_success": "Sauvegardé",
+    "empty_state": "Aucune entrée pour ce jour.",
+    "dashboard_widget_title": "Ton Journal",
+    "dashboard_cta": "Écrire ma pensée du jour",
+    "dashboard_preview": "Tu as écrit : \"{{text}}...\""
+  }
+}
