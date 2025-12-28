@@ -18,7 +18,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 const { width } = Dimensions.get('window');
 
 export default function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
@@ -82,7 +82,7 @@ export default function Dashboard() {
       <LinearGradient colors={['#E3F2FD', '#FFFFFF']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.date}>{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
+            <Text style={styles.date}>{new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
             <Text style={styles.greeting}>
               {t(getGreeting(), { name: user?.name || 'Toi' })}
             </Text>
@@ -118,17 +118,6 @@ export default function Dashboard() {
               {user?.goal || "Prendre du temps pour moi"}
             </Text>
           </LinearGradient>
-        </Animated.View>
-
-        {/* WIDGET HUMEUR / CHECK-IN */}
-        <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.moodSection}>
-          <Text style={styles.moodTitle}>
-            {t('dashboard.feeling_question', { mood: user?.mood?.split(' ')[0] || '...' })}
-          </Text>
-          <TouchableOpacity style={styles.checkInButton}>
-            <Text style={styles.checkInText}>{t('dashboard.check_in')}</Text>
-            <Ionicons name="arrow-forward" size={20} color="#6C5CE7" />
-          </TouchableOpacity>
         </Animated.View>
 
         {/* --- NOUVEAU WIDGET JOURNAL --- */}

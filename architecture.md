@@ -165,6 +165,28 @@ Ajout d'une icône de validation ("checkmark-circle") dans l'en-tête pour décl
   <Calendar key={i18n.language} ... />
 ```
 
+  <Calendar key={i18n.language} ... />
+```
+
+### Correction Date & Nettoyage Dashboard
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `app/(tabs)/index.tsx`, `app/(tabs)/journal.tsx`
+
+**Description**:
+- Affichage de la date selon la langue sélectionnée (ex: "Lundi 29 Décembre").
+- Suppression de la section "Humeur / Check-in" du Dashboard.
+
+**Fonctionnement**:
+- Utilisation de `date.toLocaleDateString(i18n.language, ...)` au lieu du paramètre `undefined` (qui utilisait la locale du système).
+
+```typescript
+// Dashboard et Journal
+<Text>
+  {date.toLocaleDateString(i18n.language, { weekday: 'long', ... })}
+</Text>
+```
+
 ### Ajout du Bouton de Déconnexion
 
 **Date**: 27/12/2025

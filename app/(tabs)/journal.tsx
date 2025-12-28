@@ -115,7 +115,7 @@ export default function JournalScreen() {
             <View style={styles.header}>
               <TouchableOpacity onPress={() => setShowCalendar(!showCalendar)} style={styles.dateSelector}>
                 <Text style={styles.dateText}>
-                  {date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {date.toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}
                 </Text>
                 <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color="#636E72" />
               </TouchableOpacity>
