@@ -1,0 +1,52 @@
+{
+    "onboarding": {
+        "step1_title": "ما هو اسمك؟",
+        "step1_subtitle": "لنتعرف عليك أكثر.",
+        "step1_placeholder": "اسمك الأول",
+        "step2_title": "تشرفت بك {{name}}، كيف تشعر؟",
+        "mood_demotivated": "غير متحمس",
+        "mood_anxious": "قلق",
+        "mood_tired": "متعب",
+        "mood_ready": "مستعد للانطلاق",
+        "step3_title": "ما هو هدفك الأساسي؟",
+        "step3_placeholder": "مثال: الالتزام، تقليل التوتر...",
+        "step4_title": "اختر مجالاً",
+        "cat_mental": "الصحة العقلية",
+        "cat_productivity": "الإنتاجية",
+        "cat_physical": "اللياقة البدنية",
+        "cat_career": "المسار المهني",
+        "step5_title": "متى تريد تخصيص 5 دقائق لنفسك؟",
+        "step5_subtitle": "سنرسل لك تذكيراً صغيراً ومحفزاً.",
+        "time_morning": "🌅 الصباح (08:00)",
+        "time_noon": "🌞 الظهر (12:00)",
+        "time_evening": "🌙 المساء (20:00)",
+        "loading_title": "جاري إنشاء مساحتك الخاصة {{name}}...",
+        "loading_subtitle": "تخصيص التجربة...",
+        "btn_continue": "متابعة",
+        "btn_finish": "إنهاء"
+    },
+    "dashboard": {
+        "greeting": "مرحباً، {{name}}",
+        "greeting_evening": "مساء الخير، {{name}}",
+        "focus_title": "هدفك الرئيسي",
+        "daily_quote": "اقتباس اليوم",
+        "quote_text": "الرحلة الوحيدة المستحيلة هي تلك التي لم تبدأها أبداً.",
+        "feeling_question": "هل ما زلت {{mood}}؟",
+        "check_in": "تسجيل الحالة"
+    },
+    "journal": {
+        "tab_title": "المذكرة",
+        "today_title": "مذكرة اليوم",
+        "placeholder": "بماذا تفكر اليوم؟ اكتب دون حكم على نفسك...",
+        "save_success": "تم الحفظ",
+        "empty_state": "لا توجد مدخلات لهذا اليوم.",
+        "dashboard_widget_title": "مذكرتك",
+        "dashboard_cta": "اكتب فكرة اليوم",
+        "dashboard_preview": "لقد كتبت: \"{{text}}...\""
+    },
+    "settings": {
+        "title": "الإعدادات",
+        "language": "اللغة",
+        "language_select": "اختر لغة التطبيق"
+    }
+}

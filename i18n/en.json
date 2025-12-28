@@ -3,31 +3,25 @@
     "step1_title": "What is your name?",
     "step1_subtitle": "Let's get to know each other.",
     "step1_placeholder": "Your name",
-    
     "step2_title": "Nice to meet you {{name}}, how do you feel?",
     "mood_demotivated": "Demotivated",
     "mood_anxious": "Anxious",
     "mood_tired": "Tired",
     "mood_ready": "Ready to go",
-    
     "step3_title": "What is your main goal?",
     "step3_placeholder": "Ex: Be more consistent, reduce stress...",
-    
     "step4_title": "Choose a focus area",
     "cat_mental": "Mental Health",
     "cat_productivity": "Productivity",
     "cat_physical": "Physical Health",
     "cat_career": "Career",
-    
     "step5_title": "When do you want 5 min for yourself?",
     "step5_subtitle": "We'll send you a little motivation boost.",
     "time_morning": "🌅 Morning (08:00 AM)",
     "time_noon": "🌞 Noon (12:00 PM)",
     "time_evening": "🌙 Evening (08:00 PM)",
-    
     "loading_title": "Setting up your space {{name}}...",
     "loading_subtitle": "Personalizing your experience...",
-    
     "btn_continue": "Continue",
     "btn_finish": "Finish"
   },
@@ -49,5 +43,10 @@
     "dashboard_widget_title": "Your Journal",
     "dashboard_cta": "Write today's thought",
     "dashboard_preview": "You wrote: \"{{text}}...\""
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "language_select": "Choose App Language"
   }
 }

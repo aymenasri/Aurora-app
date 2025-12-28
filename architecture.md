@@ -23,9 +23,147 @@ L'application est construite avec **React Native** et **Expo**, en utilisant **E
   - `userProfile`: Stocke le nom, l'humeur, etc.
   - `journal_YYYY-MM-DD`: Stocke les entrées de journal par date.
 
+### Gestion du Journal
+
+- **Librairie de Calendrier**: `react-native-calendars` est utilisé pour la sélection de la date.
+- **Stockage**: Chaque jour est une clé unique dans AsyncStorage.
+
 ---
 
 ## Changements Récents
+
+### Intégration du Calendrier Journal
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`, `package.json`
+
+**Description**:
+Remplacement du sélecteur de date natif par un calendrier visuel interactif.
+
+**Fonctionnement**:
+- Utilisation de `<Calendar />` de `react-native-calendars`.
+- Configuration locale en Français.
+- Le calendrier s'ouvre/se ferme en appuyant sur la date en haut.
+
+```typescript
+// Exemple de configuration et rendu du calendrier
+LocaleConfig.locales['fr'] = {
+  monthNames: ['Janvier', ...],
+  today: "Aujourd'hui"
+};
+
+// ...
+{showCalendar && (
+  <View style={styles.calendarContainer}>
+    <Calendar
+      current={getFormattedDate(date)}
+      onDayPress={onDayPress}
+      markedDates={{
+        [getFormattedDate(date)]: { selected: true, selectedColor: '#A29BFE' }
+      }}
+      // ...
+    />
+  </View>
+)}
+```
+
+### Correction Clavier Journal
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Ajout d'une fonctionnalité pour masquer le clavier en touchant n'importe où en dehors de la zone de texte.
+
+**Fonctionnement**:
+- Enveloppement de l'interface dans `TouchableWithoutFeedback`.
+- Appel de `Keyboard.dismiss()` lors de l'événement `onPress`.
+
+```typescript
+<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+  <View style={{ flex: 1 }}>
+     {/* Contenu Gradient et Input */}
+  </View>
+</TouchableWithoutFeedback>
+```
+
+</TouchableWithoutFeedback>
+```
+
+### Ajout du Bouton de Sauvegarde
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Ajout d'une icône de validation ("checkmark-circle") dans l'en-tête pour déclencher une sauvegarde manuelle et fermer le clavier.
+
+**Fonctionnement**:
+- Bouton tactile avec icône.
+- Sur le clic : Ferme le clavier et appelle `saveEntry`.
+
+```typescript
+<TouchableOpacity onPress={() => { Keyboard.dismiss(); saveEntry(text); }}>
+  <Ionicons name="checkmark-circle" size={28} color="#6C5CE7" />
+</TouchableOpacity>
+```
+
+</TouchableOpacity>
+```
+
+### Remplacement Explore par Paramètres & Support Arabe
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `app/(tabs)/settings.tsx`, `app/(tabs)/_layout.tsx`, `i18n/ar.json`, `i18n/index.ts`
+
+**Description**:
+- Suppression de l'onglet "Explore".
+- Ajout de l'onglet "Paramètres" (`SettingsScreen`).
+- Ajout du support de la langue Arabe.
+
+**Fonctionnement**:
+- Nouvelle page `settings.tsx` avec sélection de langue.
+- `i18n.changeLanguage()` met à jour la langue de l'app.
+- `I18nManager` est configuré pour le support RTL (Right-to-Left) si Arabe sélectionné.
+
+```typescript
+  const changeLanguage = async (lang: string) => {
+    i18n.changeLanguage(lang);
+    const isArabic = lang === 'ar';
+    if (I18nManager.isRTL !== isArabic) {
+        // Force RTL for Arabic
+        I18nManager.allowRTL(isArabic);
+        I18nManager.forceRTL(isArabic);
+    }
+  };
+```
+
+  };
+```
+
+### Corrections de Bugs et Améliorations
+
+**Date**: 28/12/2025
+**Fichiers Modifiés**: `i18n/en.json`, `app/(tabs)/journal.tsx`
+
+**Description**:
+- Ajout des traductions manquantes pour les Paramètres en Anglais.
+- Correction du Calendrier pour qu'il change de langue dynamiquement (Français, Anglais, Arabe).
+
+**Fonctionnement**:
+- **Traductions**: Ajout des clés `settings` dans `en.json`.
+- **Calendrier**: Ajout des configurations `LocaleConfig` pour 'en' et 'ar'. Utilisation de `useEffect` pour mettre à jour `LocaleConfig.defaultLocale` et de la prop `key={i18n.language}` pour forcer le rafraîchissement du composant.
+
+```typescript
+  // Synchronisation Calendrier / App Language
+  useEffect(() => {
+    if (i18n.language) {
+      LocaleConfig.defaultLocale = i18n.language;
+    }
+  }, [i18n.language]);
+
+  <Calendar key={i18n.language} ... />
+```
 
 ### Ajout du Bouton de Déconnexion
 
