@@ -28,6 +28,7 @@
   "dashboard": {
     "greeting": "Good morning, {{name}}",
     "greeting_evening": "Good evening, {{name}}",
+    "tab_title": "Home",
     "focus_title": "Your Main Focus",
     "daily_quote": "Daily Wisdom",
     "quote_text": "The only impossible journey is the one you never begin.",

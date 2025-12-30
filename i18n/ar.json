@@ -28,6 +28,7 @@
     "dashboard": {
         "greeting": "مرحباً، {{name}}",
         "greeting_evening": "مساء الخير، {{name}}",
+        "tab_title": "الرئيسية",
         "focus_title": "هدفك الرئيسي",
         "daily_quote": "اقتباس اليوم",
         "quote_text": "الرحلة الوحيدة المستحيلة هي تلك التي لم تبدأها أبداً.",

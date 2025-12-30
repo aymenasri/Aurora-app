@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import AnimatableTabIcon from '../../components/AnimatableTabIcon';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -22,9 +22,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
+          title: t('dashboard.tab_title') || 'Accueil',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+            <AnimatableTabIcon focused={focused} name={focused ? "home" : "home-outline"} size={24} color={color} />
           )
         }}
       />
@@ -33,7 +33,7 @@ export default function TabLayout() {
         options={{
           title: t('journal.tab_title'),
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} />
+            <AnimatableTabIcon focused={focused} name={focused ? "book" : "book-outline"} size={24} color={color} />
           )
         }}
       />
@@ -42,7 +42,7 @@ export default function TabLayout() {
         options={{
           title: t('settings.title') || 'Paramètres',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "settings" : "settings-outline"} size={24} color={color} />
+            <AnimatableTabIcon focused={focused} name={focused ? "settings" : "settings-outline"} size={24} color={color} />
           )
         }}
       />

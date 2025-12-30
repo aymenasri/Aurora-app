@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import PageTransition from '../../components/PageTransition';
 
 const { width } = Dimensions.get('window');
 
@@ -40,8 +40,26 @@ export default function Dashboard() {
 
       // 2. Charger le journal du jour
       const todayKey = `journal_${new Date().toISOString().split('T')[0]}`;
-      const entry = await AsyncStorage.getItem(todayKey);
-      setTodayEntry(entry || '');
+      const entryRaw = await AsyncStorage.getItem(todayKey);
+
+      if (entryRaw) {
+        try {
+          const parsed = JSON.parse(entryRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Prend la dernière pensée
+            setTodayEntry(parsed[parsed.length - 1].content);
+          } else if (typeof parsed === 'string') {
+            setTodayEntry(parsed);
+          } else {
+            setTodayEntry('');
+          }
+        } catch {
+          // Fallback legacy (si c'est une string simple non-JSON)
+          setTodayEntry(entryRaw);
+        }
+      } else {
+        setTodayEntry('');
+      }
 
     } catch (e) {
       console.error("Erreur de chargement", e);
@@ -77,76 +95,73 @@ export default function Dashboard() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* HEADER AVEC DÉGRADÉ DOUX */}
-      <LinearGradient colors={['#E3F2FD', '#FFFFFF']} style={styles.header}>
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.date}>{new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
-            <Text style={styles.greeting}>
-              {t(getGreeting(), { name: user?.name || 'Toi' })}
-            </Text>
+    <PageTransition style={styles.container}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* HEADER AVEC DÉGRADÉ DOUX */}
+        <LinearGradient colors={['#E3F2FD', '#FFFFFF']} style={styles.header}>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.date}>{new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
+              <Text style={styles.greeting}>
+                {t(getGreeting(), { name: user?.name || 'Toi' })}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={30} color="#6C5CE7" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={30} color="#6C5CE7" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
 
-      <View style={styles.content}>
-
-        {/* CARTE CITATION */}
-        <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.quoteCard}>
-          <Ionicons name="quote" size={24} color="#A29BFE" style={{ marginBottom: 10 }} />
-          <Text style={styles.quoteText}>"{t('dashboard.quote_text')}"</Text>
-          <Text style={styles.quoteLabel}>{t('dashboard.daily_quote')}</Text>
-        </Animated.View>
-
-        {/* CARTE OBJECTIF PRINCIPAL */}
-        <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.focusCard}>
-          <LinearGradient
-            colors={['#A29BFE', '#6C5CE7']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.focusBackground}
-          >
-            <View style={styles.focusHeader}>
-              <Ionicons name="flag" size={24} color="#FFF" />
-              <Text style={styles.focusLabel}>{t('dashboard.focus_title')}</Text>
-            </View>
-            <Text style={styles.focusText}>
-              {user?.goal || "Prendre du temps pour moi"}
-            </Text>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* --- NOUVEAU WIDGET JOURNAL --- */}
-        <Animated.View entering={FadeInDown.delay(500).duration(600)}>
-          <TouchableOpacity
-            style={styles.journalWidget}
-            onPress={() => router.push('/(tabs)/journal')}
-          >
-            <View style={styles.journalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={styles.journalIconBg}>
-                  <Ionicons name="book" size={20} color="#0984E3" />
-                </View>
-                <Text style={styles.journalTitle}>{t('journal.dashboard_widget_title')}</Text>
+        <View style={styles.content}>
+          {/* CARTE CITATION */}
+          <View style={styles.quoteCard}>
+            <Ionicons name="chatbubble-ellipses" size={24} color="#A29BFE" style={{ marginBottom: 10 }} />
+            <Text style={styles.quoteText}>"{t('dashboard.quote_text')}"</Text>
+            <Text style={styles.quoteLabel}>{t('dashboard.daily_quote')}</Text>
+          </View>
+          {/* CARTE OBJECTIF PRINCIPAL */}
+          <View style={styles.focusCard}>
+            <LinearGradient
+              colors={['#A29BFE', '#6C5CE7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.focusBackground}
+            >
+              <View style={styles.focusHeader}>
+                <Ionicons name="flag" size={24} color="#FFF" />
+                <Text style={styles.focusLabel}>{t('dashboard.focus_title')}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#B2BEC3" />
-            </View>
-
-            <Text style={styles.journalContent} numberOfLines={2}>
-              {todayEntry
-                ? t('journal.dashboard_preview', { text: todayEntry.substring(0, 50) })
-                : t('journal.dashboard_cta')
-              }
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-      </View>
-    </ScrollView>
+              <Text style={styles.focusText}>
+                {user?.goal || "Prendre du temps pour moi"}
+              </Text>
+            </LinearGradient>
+          </View>
+          {/* --- NOUVEAU WIDGET JOURNAL --- */}
+          <View>
+            <TouchableOpacity
+              style={styles.journalWidget}
+              onPress={() => router.push('/(tabs)/journal')}
+            >
+              <View style={styles.journalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.journalIconBg}>
+                    <Ionicons name="book" size={20} color="#0984E3" />
+                  </View>
+                  <Text style={styles.journalTitle}>{t('journal.dashboard_widget_title')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#B2BEC3" />
+              </View>
+              <Text style={styles.journalContent} numberOfLines={2}>
+                {todayEntry
+                  ? t('journal.dashboard_preview', { text: todayEntry.substring(0, 50) })
+                  : t('journal.dashboard_cta')
+                }
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </PageTransition>
   );
 }
 

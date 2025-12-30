@@ -28,6 +28,7 @@
   "dashboard": {
     "greeting": "Bonjour, {{name}}",
     "greeting_evening": "Bonsoir, {{name}}",
+    "tab_title": "Accueil",
     "focus_title": "Ton Objectif Prioritaire",
     "daily_quote": "Citation du jour",
     "quote_text": "Le seul voyage impossible est celui que tu ne commences jamais.",

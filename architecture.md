@@ -32,6 +32,116 @@ L'application est construite avec **React Native** et **Expo**, en utilisant **E
 
 ## Changements Récents
 
+### Système CRUD Journal
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Refonte du système de journal pour supporter plusieurs entrées par jour (CRUD). Les anciennes entrées uniques sont migrées automatiquement.
+
+**Fonctionnement**:
+- **Stockage**: Liste d'objets JSON `{ id, content, createdAt }` au lieu d'une simple chaîne.
+- **UI**: Liste déroulante (`FlatList`) des pensées du jour + Zone de saisie en bas de page.
+- **Migration**: Détection automatique du format lors du chargement (`try/catch JSON.parse`).
+
+```typescript
+// Structure d'une entrée
+interface JournalEntry {
+  id: string;
+  content: string;
+  createdAt: number;
+}
+```
+
+
+### Sélection de Date pour le Journal
+- **Fonctionnalité** : L'utilisateur peut choisir une date spécifique pour une nouvelle entrée via un calendrier modal.
+- **Composants** : `Calendar` de `react-native-calendars`.
+- **Logique** : 
+    - Bouton calendrier à côté du champ de saisie.
+    - Modal affichant le calendrier.
+    - `targetDate` détermine la clé de stockage (`journal_YYYY-MM-DD`).
+    - Indicateur visuel "Pour : [Date]" si la date n'est pas aujourd'hui.
+    - Réinitialisation à "Aujourd'hui" après l'ajout.
+
+### Améliorations Journal (Timestamps & Suppression)
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+- Ajout de l'heure à côté de chaque pensée.
+- Amélioration de la fonction de suppression pour être compatible Web (`window.confirm`) et Mobile (`Alert`).
+
+**Fonctionnement**:
+- `renderEntryObj` affiche `entry.createdAt` formaté.
+- `deleteEntry` vérifie `Platform.OS` avant d'afficher la confirmation.
+
+### Icônes de Navigation Animées
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/_layout.tsx`, `components/AnimatableTabIcon.tsx`
+
+**Description**:
+Ajout d'une animation élastique (spring) sur les icônes de la barre de navigation lors de la sélection.
+
+**Fonctionnement**:
+- Composant `AnimatableTabIcon` utilise `react-native-reanimated`.
+- Écoute la prop `focused` pour déclencher `useSharedValue` et `withSpring`.
+
+### Transitions de Page
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `components/PageTransition.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/journal.tsx`, `app/(tabs)/settings.tsx`
+
+**Description**:
+Ajout d'une transition fluide (Fade In + Slide Up) lors du changement d'onglet.
+
+**Fonctionnement**:
+- Composant `PageTransition` enveloppe le contenu de chaque écran.
+- Utilise `useFocusEffect` pour réinitialiser et rejouer l'animation d'entrée à chaque focus.
+
+### Vue Timeline du Journal
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Remplacement de la vue par jour (Calendrier) par une vue Timeline chronologique regroupée par date.
+
+**Fonctionnement**:
+- `AsyncStorage.getAllKeys()` récupère tout l'historique.
+- `AsyncStorage.multiGet()` charge les données.
+- Données structurées pour `SectionList` (sections = dates, items = entrées).
+- Tri chronologique inverse (plus récent en haut).
+
+### Sélection de Date pour le Journal
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Ajout d'un sélecteur de date (Modal Calendrier) pour ajouter des pensées à des dates antérieures ou futures.
+
+**Fonctionnement**:
+- Bouton Calendrier près de la zone de saisie.
+- État `targetDate` pour suivre la date sélectionnée.
+- Badge visuel "Pour : [Date]" quand ce n'est pas aujourd'hui.
+- Réinitialisation automatique à "Aujourd'hui" après ajout.
+
+### Édition des Entrées
+
+**Date**: 30/12/2025
+**Fichiers Modifiés**: `app/(tabs)/journal.tsx`
+
+**Description**:
+Ajout de la possibilité de modifier une entrée existante en appuyant dessus.
+
+**Fonctionnement**:
+- Tap sur le texte d'une entrée ouvre une `Modal` d'édition.
+- Sauvegarde met à jour `AsyncStorage` et rafraîchit la liste.
+
 ### Intégration du Calendrier Journal
 
 **Date**: 28/12/2025
