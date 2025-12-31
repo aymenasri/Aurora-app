@@ -1,28 +1,36 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, TextInput, 
-  Dimensions, KeyboardAvoidingView, TouchableWithoutFeedback, 
-  Keyboard, Platform, ActivityIndicator 
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 
 // 1. On importe le Hook
 import { useTranslation } from 'react-i18next';
+import { requestNotificationPermissions, scheduleDailyReminder } from '../../utils/notifications';
 
-const TOTAL_STEPS = 5; 
+const TOTAL_STEPS = 5;
 
 export default function OnboardingScreen() {
   // 2. On initialise le Hook
   const { t } = useTranslation();
-  
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  
+
   const [form, setForm] = useState({
     name: '',
     mood: '',
@@ -31,10 +39,19 @@ export default function OnboardingScreen() {
     reminderTime: ''
   });
 
+  // ... (inside component)
+
   const finishOnboarding = async () => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
       await AsyncStorage.setItem('userProfile', JSON.stringify(form));
+
+      // Demander la permission et programmer la notification
+      const granted = await requestNotificationPermissions();
+      if (granted && form.reminderTime) {
+        await scheduleDailyReminder(form.reminderTime);
+      }
+
       router.replace('/(tabs)');
     } catch (e) {
       console.error(e);
@@ -75,7 +92,7 @@ export default function OnboardingScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
@@ -87,21 +104,21 @@ export default function OnboardingScreen() {
           ) : <View style={{ width: 40 }} />}
 
           <View style={styles.progressBase}>
-            <Animated.View 
-              style={[styles.progressBar, { width: `${(step / TOTAL_STEPS) * 100}%` }]} 
+            <Animated.View
+              style={[styles.progressBar, { width: `${(step / TOTAL_STEPS) * 100}%` }]}
             />
           </View>
-          <View style={{ width: 40 }} /> 
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.content}>
-          <Animated.View 
+          <Animated.View
             key={step}
             entering={FadeInRight.duration(300)}
             exiting={FadeOutLeft.duration(300)}
             style={{ width: '100%' }}
           >
-            
+
             {/* STEP 1: NAME */}
             {step === 1 && (
               <View>
@@ -112,7 +129,7 @@ export default function OnboardingScreen() {
                   placeholder={t('onboarding.step1_placeholder')}
                   placeholderTextColor="#B2BEC3"
                   value={form.name}
-                  onChangeText={(txt) => setForm({...form, name: txt})}
+                  onChangeText={(txt) => setForm({ ...form, name: txt })}
                   autoFocus
                 />
               </View>
@@ -130,11 +147,11 @@ export default function OnboardingScreen() {
                   { key: 'tired', val: t('onboarding.mood_tired') },
                   { key: 'ready', val: t('onboarding.mood_ready') }
                 ].map((item) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={item.key}
                     style={[styles.optionCard, form.mood === item.val && styles.selectedCard]}
                     onPress={() => {
-                      setForm({...form, mood: item.val});
+                      setForm({ ...form, mood: item.val });
                       Haptics.selectionAsync();
                     }}
                   >
@@ -155,7 +172,7 @@ export default function OnboardingScreen() {
                   placeholder={t('onboarding.step3_placeholder')}
                   placeholderTextColor="#B2BEC3"
                   value={form.goal}
-                  onChangeText={(txt) => setForm({...form, goal: txt})}
+                  onChangeText={(txt) => setForm({ ...form, goal: txt })}
                   multiline
                 />
               </View>
@@ -171,11 +188,11 @@ export default function OnboardingScreen() {
                   { key: 'physical', val: t('onboarding.cat_physical') },
                   { key: 'career', val: t('onboarding.cat_career') }
                 ].map((c) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={c.key}
                     style={[styles.optionCard, form.category === c.val && styles.selectedCard]}
                     onPress={() => {
-                      setForm({...form, category: c.val});
+                      setForm({ ...form, category: c.val });
                       Haptics.selectionAsync();
                     }}
                   >
@@ -197,15 +214,15 @@ export default function OnboardingScreen() {
                   { val: t('onboarding.time_noon'), id: 'noon' },
                   { val: t('onboarding.time_evening'), id: 'evening' }
                 ].map((tOption) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={tOption.id}
-                    style={[styles.optionCard, form.reminderTime === tOption.val && styles.selectedCard]}
+                    style={[styles.optionCard, form.reminderTime === tOption.id && styles.selectedCard]}
                     onPress={() => {
-                      setForm({...form, reminderTime: tOption.val});
+                      setForm({ ...form, reminderTime: tOption.id });
                       Haptics.selectionAsync();
                     }}
                   >
-                    <Text style={[styles.optionText, form.reminderTime === tOption.val && styles.selectedText]}>
+                    <Text style={[styles.optionText, form.reminderTime === tOption.id && styles.selectedText]}>
                       {tOption.val}
                     </Text>
                   </TouchableOpacity>
@@ -217,15 +234,15 @@ export default function OnboardingScreen() {
         </View>
 
         <View style={styles.footer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.nextButton, 
-              (step === 1 && !form.name) || 
-              (step === 2 && !form.mood) || 
-              (step === 3 && !form.goal) || 
-              (step === 4 && !form.category) ||
-              (step === 5 && !form.reminderTime)
-                ? styles.disabledButton 
+              styles.nextButton,
+              (step === 1 && !form.name) ||
+                (step === 2 && !form.mood) ||
+                (step === 3 && !form.goal) ||
+                (step === 4 && !form.category) ||
+                (step === 5 && !form.reminderTime)
+                ? styles.disabledButton
                 : null
             ]}
             onPress={nextStep}

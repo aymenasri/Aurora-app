@@ -47,6 +47,36 @@ export default function SettingsScreen() {
 
 
 
+    const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
+
+    const toggleSection = (section: string) => {
+        setExpandedSection(expandedSection === section ? null : section);
+        // Animation simple pour la fluidité
+        // LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); 
+    };
+
+    const SectionHeader = ({ title, section, icon }: { title: string, section: string, icon: string }) => (
+        <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => toggleSection(section)}
+            activeOpacity={0.7}
+        >
+            <View style={styles.sectionHeaderLeft}>
+                <View style={[styles.iconContainer, {
+                    backgroundColor: '#6C5CE7'
+                }]}>
+                    <Ionicons name={icon as any} size={20} color="#FFF" />
+                </View>
+                <Text style={styles.sectionHeaderText}>{title}</Text>
+            </View>
+            <Ionicons
+                name={expandedSection === section ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#B2BEC3"
+            />
+        </TouchableOpacity>
+    );
+
     return (
         <PageTransition style={styles.container}>
             <ScrollView style={{ flex: 1 }}>
@@ -55,52 +85,80 @@ export default function SettingsScreen() {
                     <Text style={styles.headerTitle}>{t('settings.title')}</Text>
                 </View>
 
-                {/* SECTION LANGUE */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('settings.language_select')}</Text>
-                    <View style={styles.optionsContainer}>
-                        <LanguageOption lang="fr" label="Français" icon="🇫🇷" />
-                        <LanguageOption lang="en" label="English" icon="🇬🇧" />
-                        <LanguageOption lang="ar" label="العربية" icon="🇸🇦" />
-                    </View>
+                {/* GROUPE: LANGUE */}
+                <View style={styles.sectionContainer}>
+                    <SectionHeader title={t('settings.language_select', 'Langue')} section="language" icon="globe-outline" />
+                    {expandedSection === 'language' && (
+                        <View style={styles.optionsContainer}>
+                            <LanguageOption lang="fr" label="Français" icon="🇫🇷" />
+                            <LanguageOption lang="en" label="English" icon="🇬🇧" />
+                            <LanguageOption lang="ar" label="العربية" icon="🇸🇦" />
+                        </View>
+                    )}
                 </View>
 
-                {/* Danger Zone */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: '#FF7675' }]}>{t('settings.danger_zone', 'Zone de Danger')}</Text>
-                    <View style={styles.card}>
-                        <TouchableOpacity
-                            style={styles.dangerButton}
-                            onPress={() => {
-                                if (Platform.OS === 'web') {
-                                    if (window.confirm(t('settings.confirm_reset', "Êtes-vous sûr de vouloir tout effacer ? Cette action est irréversible."))) {
-                                        AsyncStorage.clear().then(() => {
-                                            alert(t('settings.reset_done', "Données effacées. Veuillez redémarrer l'application."));
-                                        });
-                                    }
-                                } else {
-                                    Alert.alert(
-                                        t('settings.reset_title', "Réinitialiser"),
-                                        t('settings.confirm_reset', "Êtes-vous sûr de vouloir tout effacer ? Cette action est irréversible."),
-                                        [
-                                            { text: t('common.cancel', "Annuler"), style: "cancel" },
-                                            {
-                                                text: t('common.delete', "Tout effacer"),
-                                                style: "destructive",
-                                                onPress: async () => {
-                                                    await AsyncStorage.clear();
-                                                    Alert.alert("Succès", "Données effacées. Veuillez redémarrer l'application.");
+                {/* GROUPE: NOTIFICATIONS */}
+                <View style={styles.sectionContainer}>
+                    <SectionHeader title={t('settings.notifications', 'Notifications')} section="notifications" icon="notifications" />
+                    {expandedSection === 'notifications' && (
+                        <View style={styles.optionsContainer}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={async () => {
+                                    const { sendTestNotification } = require('../../utils/notifications');
+                                    await sendTestNotification();
+                                    if (Platform.OS !== 'web') Alert.alert("Envoyé", "Vous devriez recevoir une notification dans quelques secondes.");
+                                }}
+                            >
+                                <View style={styles.menuItemLeft}>
+                                    <Text style={styles.menuItemText}>{t('settings.test_notification', 'Tester les notifications')}</Text>
+                                </View>
+                                <Ionicons name="paper-plane-outline" size={20} color="#6C5CE7" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                {/* GROUPE: DANGER ZONE */}
+                <View style={styles.sectionContainer}>
+                    <SectionHeader title={t('settings.danger_zone', 'Zone de Danger')} section="danger" icon="alert-circle-outline" />
+                    {expandedSection === 'danger' && (
+                        <View style={styles.optionsContainer}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    if (Platform.OS === 'web') {
+                                        if (window.confirm(t('settings.confirm_reset', "Êtes-vous sûr de vouloir tout effacer ? Cette action est irréversible."))) {
+                                            AsyncStorage.clear().then(() => {
+                                                alert(t('settings.reset_done', "Données effacées. Veuillez redémarrer l'application."));
+                                            });
+                                        }
+                                    } else {
+                                        Alert.alert(
+                                            t('settings.reset_title', "Réinitialiser"),
+                                            t('settings.confirm_reset', "Êtes-vous sûr de vouloir tout effacer ? Cette action est irréversible."),
+                                            [
+                                                { text: t('common.cancel', "Annuler"), style: "cancel" },
+                                                {
+                                                    text: t('common.delete', "Tout effacer"),
+                                                    style: "destructive",
+                                                    onPress: async () => {
+                                                        await AsyncStorage.clear();
+                                                        Alert.alert("Succès", "Données effacées. Veuillez redémarrer l'application.");
+                                                    }
                                                 }
-                                            }
-                                        ]
-                                    );
-                                }
-                            }}
-                        >
-                            <Ionicons name="trash-bin-outline" size={24} color="#FFF" />
-                            <Text style={styles.dangerButtonText}>{t('settings.clear_data', 'Effacer toutes les données')}</Text>
-                        </TouchableOpacity>
-                    </View>
+                                            ]
+                                        );
+                                    }
+                                }}
+                            >
+                                <View style={styles.menuItemLeft}>
+                                    <Text style={[styles.menuItemText, { color: '#FF7675' }]}>{t('settings.clear_data', 'Effacer toutes les données')}</Text>
+                                </View>
+                                <Ionicons name="trash-outline" size={20} color="#FF7675" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
         </PageTransition>
@@ -148,14 +206,16 @@ const styles = StyleSheet.create({
         elevation: 2
     },
     optionsContainer: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        // backgroundColor: '#FFFFFF', // Removed
+        // borderRadius: 16, // Removed
         padding: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-        elevation: 2,
+        // shadowColor: '#000', // Removed
+        // shadowOffset: { width: 0, height: 2 }, // Removed
+        // shadowOpacity: 0.05, // Removed
+        // shadowRadius: 5, // Removed
+        // elevation: 2, // Removed
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0'
     },
     option: {
         flexDirection: 'row',
@@ -207,5 +267,59 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold'
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 15,
+        borderRadius: 12,
+    },
+    menuItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15
+    },
+    iconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    menuItemText: {
+        fontSize: 16,
+        color: '#2D3436',
+        fontWeight: '500'
+    },
+    // New Styles
+    sectionContainer: {
+        marginBottom: 15,
+        backgroundColor: '#FFF',
+        marginHorizontal: 20,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 20,
+        backgroundColor: '#FFF'
+    },
+    sectionHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15
+    },
+    sectionHeaderText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#2D3436'
     }
 });
