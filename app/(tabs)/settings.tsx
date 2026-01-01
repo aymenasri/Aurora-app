@@ -1,10 +1,13 @@
+
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, I18nManager, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import PageTransition from '../../components/PageTransition';
+
 
 export default function SettingsScreen() {
     const { t, i18n } = useTranslation();
@@ -48,11 +51,46 @@ export default function SettingsScreen() {
 
 
     const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
+    const [reminderTime, setReminderTime] = React.useState<string>('');
+
+    React.useEffect(() => {
+        loadProfile();
+    }, []);
+
+    const loadProfile = async () => {
+        try {
+            const profileStr = await AsyncStorage.getItem('userProfile');
+            if (profileStr) {
+                const profile = JSON.parse(profileStr);
+                if (profile.reminderTime) setReminderTime(profile.reminderTime);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const updateReminderTime = async (newTime: string) => {
+        setReminderTime(newTime);
+        try {
+            // Update Storage
+            const profileStr = await AsyncStorage.getItem('userProfile');
+            let profile = profileStr ? JSON.parse(profileStr) : {};
+            profile.reminderTime = newTime;
+            await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+
+            // Reschedule
+            const { scheduleDailyReminder } = require('../../utils/notifications');
+            await scheduleDailyReminder(newTime);
+
+            // Haptic Feedback for success (optional but nice)
+            // Haptics.selectionAsync(); // Need import
+        } catch (e) {
+            console.error("Failed to update reminder time", e);
+        }
+    };
 
     const toggleSection = (section: string) => {
         setExpandedSection(expandedSection === section ? null : section);
-        // Animation simple pour la fluidité
-        // LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); 
     };
 
     const SectionHeader = ({ title, section, icon }: { title: string, section: string, icon: string }) => (
@@ -89,11 +127,16 @@ export default function SettingsScreen() {
                 <View style={styles.sectionContainer}>
                     <SectionHeader title={t('settings.language_select', 'Langue')} section="language" icon="globe-outline" />
                     {expandedSection === 'language' && (
-                        <View style={styles.optionsContainer}>
+                        <Animated.View
+                            entering={FadeIn}
+                            exiting={FadeOut}
+                            layout={Layout.springify()}
+                            style={styles.optionsContainer}
+                        >
                             <LanguageOption lang="fr" label="Français" icon="🇫🇷" />
                             <LanguageOption lang="en" label="English" icon="🇬🇧" />
                             <LanguageOption lang="ar" label="العربية" icon="🇸🇦" />
-                        </View>
+                        </Animated.View>
                     )}
                 </View>
 
@@ -101,7 +144,52 @@ export default function SettingsScreen() {
                 <View style={styles.sectionContainer}>
                     <SectionHeader title={t('settings.notifications', 'Notifications')} section="notifications" icon="notifications" />
                     {expandedSection === 'notifications' && (
-                        <View style={styles.optionsContainer}>
+                        <Animated.View
+                            entering={FadeIn}
+                            exiting={FadeOut}
+                            layout={Layout.springify()}
+                            style={styles.optionsContainer}
+                        >
+                            {/* SÉLECTEUR D'HEURE */}
+                            <Text style={[styles.sectionTitle, { marginLeft: 15, marginTop: 10 }]}>{t('onboarding.step5_title', 'Quand ?')}</Text>
+                            <View style={{ paddingHorizontal: 10, marginBottom: 15 }}>
+                                {[
+                                    { val: t('onboarding.time_morning', 'Matin'), id: 'morning', icon: 'sunny-outline' },
+                                    { val: t('onboarding.time_noon', 'Midi'), id: 'noon', icon: 'partly-sunny-outline' },
+                                    { val: t('onboarding.time_evening', 'Soir'), id: 'evening', icon: 'moon-outline' }
+                                ].map((opt) => (
+                                    <TouchableOpacity
+                                        key={opt.id}
+                                        style={[
+                                            styles.option,
+                                            reminderTime === opt.id && styles.optionSelected,
+                                            { marginBottom: 5 }
+                                        ]}
+                                        onPress={() => updateReminderTime(opt.id)}
+                                    >
+                                        <View style={styles.optionLeft}>
+                                            <Ionicons
+                                                name={opt.icon as any}
+                                                size={20}
+                                                color={reminderTime === opt.id ? '#6C5CE7' : '#636E72'}
+                                            />
+                                            <Text style={[
+                                                styles.optionText,
+                                                reminderTime === opt.id && styles.optionTextSelected
+                                            ]}>
+                                                {opt.val}
+                                            </Text>
+                                        </View>
+                                        {reminderTime === opt.id && (
+                                            <Ionicons name="checkmark-circle" size={20} color="#6C5CE7" />
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <View style={{ height: 1, backgroundColor: '#F0F0F0', marginHorizontal: 15, marginBottom: 15 }} />
+
+                            {/* BOUTON TEST */}
                             <TouchableOpacity
                                 style={styles.menuItem}
                                 onPress={async () => {
@@ -111,11 +199,14 @@ export default function SettingsScreen() {
                                 }}
                             >
                                 <View style={styles.menuItemLeft}>
+                                    <View style={[styles.iconContainer, { backgroundColor: '#A29BFE' }]}>
+                                        <Ionicons name="notifications-outline" size={22} color="#FFF" />
+                                    </View>
                                     <Text style={styles.menuItemText}>{t('settings.test_notification', 'Tester les notifications')}</Text>
                                 </View>
                                 <Ionicons name="paper-plane-outline" size={20} color="#6C5CE7" />
                             </TouchableOpacity>
-                        </View>
+                        </Animated.View>
                     )}
                 </View>
 
@@ -123,7 +214,12 @@ export default function SettingsScreen() {
                 <View style={styles.sectionContainer}>
                     <SectionHeader title={t('settings.danger_zone', 'Zone de Danger')} section="danger" icon="alert-circle-outline" />
                     {expandedSection === 'danger' && (
-                        <View style={styles.optionsContainer}>
+                        <Animated.View
+                            entering={FadeIn}
+                            exiting={FadeOut}
+                            layout={Layout.springify()}
+                            style={styles.optionsContainer}
+                        >
                             <TouchableOpacity
                                 style={styles.menuItem}
                                 onPress={() => {
@@ -157,7 +253,7 @@ export default function SettingsScreen() {
                                 </View>
                                 <Ionicons name="trash-outline" size={20} color="#FF7675" />
                             </TouchableOpacity>
-                        </View>
+                        </Animated.View>
                     )}
                 </View>
             </ScrollView>

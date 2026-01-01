@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -13,7 +13,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import PageTransition from '../../components/PageTransition';
+import { QUOTES } from '../../constants/quotes';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +26,16 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [todayEntry, setTodayEntry] = useState('');
   const [loading, setLoading] = useState(true);
+  const [smartGoal, setSmartGoalState] = useState<any>(null);
+  const [goalStats, setGoalStats] = useState<any>({ percentage: 0, daysRemaining: 0, currentCheckins: 0 });
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // useFocusEffect permet de recharger les données à chaque fois qu'on revient sur l'écran
   useFocusEffect(
@@ -38,15 +50,26 @@ export default function Dashboard() {
       const jsonValue = await AsyncStorage.getItem('userProfile');
       if (jsonValue != null) setUser(JSON.parse(jsonValue));
 
-      // 2. Charger le journal du jour
+      // 2. Charger et Mettre à jour le Smart Goal
+      const { registerDailyCheckin, calculateGoalProgress, getSmartGoal } = require('../../utils/goals');
+      // On tente d'abord de récupérer, si existe on register le checkin
+      let currentGoal = await getSmartGoal();
+      if (currentGoal) {
+        // Auto Check-in logic: if user opens the app, we count it (if not already counted today)
+        currentGoal = await registerDailyCheckin();
+        setSmartGoalState(currentGoal);
+        setGoalStats(calculateGoalProgress(currentGoal));
+      }
+
+      // 3. Charger le journal du jour
       const todayKey = `journal_${new Date().toISOString().split('T')[0]}`;
       const entryRaw = await AsyncStorage.getItem(todayKey);
 
       if (entryRaw) {
         try {
+          // ... (rest of logic same)
           const parsed = JSON.parse(entryRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Prend la dernière pensée
             setTodayEntry(parsed[parsed.length - 1].content);
           } else if (typeof parsed === 'string') {
             setTodayEntry(parsed);
@@ -54,7 +77,6 @@ export default function Dashboard() {
             setTodayEntry('');
           }
         } catch {
-          // Fallback legacy (si c'est une string simple non-JSON)
           setTodayEntry(entryRaw);
         }
       } else {
@@ -94,6 +116,9 @@ export default function Dashboard() {
     );
   }
 
+  const currentQuote = QUOTES[quoteIndex];
+  const quoteText = i18n.language.startsWith('en') ? currentQuote.en : (i18n.language === 'ar' ? currentQuote.ar : currentQuote.fr);
+
   return (
     <PageTransition style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
@@ -113,29 +138,64 @@ export default function Dashboard() {
         </LinearGradient>
 
         <View style={styles.content}>
-          {/* CARTE CITATION */}
+          {/* CARTE CITATION ANIMÉE */}
           <View style={styles.quoteCard}>
             <Ionicons name="chatbubble-ellipses" size={24} color="#A29BFE" style={{ marginBottom: 10 }} />
-            <Text style={styles.quoteText}>"{t('dashboard.quote_text')}"</Text>
-            <Text style={styles.quoteLabel}>{t('dashboard.daily_quote')}</Text>
-          </View>
-          {/* CARTE OBJECTIF PRINCIPAL */}
-          <View style={styles.focusCard}>
-            <LinearGradient
-              colors={['#A29BFE', '#6C5CE7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.focusBackground}
+            <Animated.View
+              key={quoteIndex}
+              entering={FadeIn.duration(800)}
+              exiting={FadeOut.duration(800)}
             >
-              <View style={styles.focusHeader}>
-                <Ionicons name="flag" size={24} color="#FFF" />
-                <Text style={styles.focusLabel}>{t('dashboard.focus_title')}</Text>
-              </View>
-              <Text style={styles.focusText}>
-                {user?.goal || "Prendre du temps pour moi"}
-              </Text>
-            </LinearGradient>
+              <Text style={styles.quoteText}>"{quoteText}"</Text>
+              <Text style={styles.quoteLabel}>- {currentQuote.author}</Text>
+            </Animated.View>
           </View>
+          {/* WIDGET SMART GOAL */}
+          {smartGoal && (
+            <TouchableOpacity
+              style={styles.goalCard}
+              activeOpacity={0.9}
+              onPress={() => router.push('/(tabs)/goals')}
+            >
+              <LinearGradient
+                colors={['#6C5CE7', '#a29bfe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.goalBackground}
+              >
+                <View style={styles.goalHeader}>
+                  <View>
+                    <Text style={styles.goalLabel}>{t('dashboard.goal_title', 'Mon Objectif')}</Text>
+                    <Text style={styles.goalTitle}>{smartGoal.title}</Text>
+                  </View>
+                  <View style={styles.goalBadge}>
+                    <Ionicons name="calendar-outline" size={14} color="#6C5CE7" />
+                    <Text style={styles.goalBadgeText}>
+                      {goalStats.daysRemaining} {t('goals.days_remaining_suffix', 'j restants')}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.goalProgressContainer}>
+                  <View style={styles.goalProgressBar}>
+                    <View style={[styles.goalProgressFill, { width: `${goalStats.percentage}%` }]} />
+                  </View>
+                  <Text style={styles.goalProgressText}>{goalStats.percentage}%</Text>
+                </View>
+
+                <View style={styles.goalStatsRow}>
+                  <Text style={styles.goalStatDetail}>
+                    <Ionicons name="checkmark-circle" size={14} color="#FFF" /> {goalStats.currentCheckins} {t('goals.days_validated_suffix')}
+                  </Text>
+                  <Text style={styles.goalStatDetail}>
+                    {t('goals.target_prefix')} {smartGoal.frequency}{t('goals.days_per_week_suffix')}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+
           {/* --- NOUVEAU WIDGET JOURNAL --- */}
           <View>
             <TouchableOpacity
@@ -217,4 +277,22 @@ const styles = StyleSheet.create({
   journalIconBg: { backgroundColor: '#E3F2FD', padding: 8, borderRadius: 10, marginRight: 10 },
   journalTitle: { fontSize: 16, fontWeight: '700', color: '#2D3436' },
   journalContent: { fontSize: 15, color: '#636E72', lineHeight: 22, fontStyle: 'italic' },
+
+  // Styles Smart Goal
+  goalCard: {
+    borderRadius: 24, marginBottom: 25,
+    shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8,
+  },
+  goalBackground: { padding: 25, borderRadius: 24 },
+  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  goalLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 5 },
+  goalTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', maxWidth: 200 },
+  goalBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  goalBadgeText: { color: '#6C5CE7', fontWeight: '700', fontSize: 12, marginLeft: 5 },
+  goalProgressContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  goalProgressBar: { flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, marginRight: 15 },
+  goalProgressFill: { height: '100%', backgroundColor: '#FFF', borderRadius: 4 },
+  goalProgressText: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+  goalStatsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  goalStatDetail: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600' },
 });

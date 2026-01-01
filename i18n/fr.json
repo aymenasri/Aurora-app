@@ -33,7 +33,30 @@
     "daily_quote": "Citation du jour",
     "quote_text": "Le seul voyage impossible est celui que tu ne commences jamais.",
     "feeling_question": "Toujours {{mood}} ?",
-    "check_in": "Refaire un point"
+    "check_in": "Refaire un point",
+    "goal_title": "Mon Objectif",
+    "pillars_title": "Mon Équilibre",
+    "pillar_mind": "Mental",
+    "pillar_body": "Physique",
+    "pillar_work": "Productivité",
+    "pillar_soul": "Social"
+  },
+  "goals": {
+    "tab_title": "Objectif",
+    "page_title": "Mon Objectif",
+    "summary_title": "Progression",
+    "calendar_title": "Historique",
+    "stats_title": "Statistiques",
+    "streak": "Série en cours",
+    "total_days": "Jours validés",
+    "edit_button": "Modifier l'objectif",
+    "frequency_label": "Fréquence : {{count}}j / sem",
+    "deadline_label": "Date limite",
+    "days_left": "Jours restants",
+    "target_prefix": "Cible :",
+    "days_per_week_suffix": "j / sem",
+    "days_remaining_suffix": "j restants",
+    "days_validated_suffix": "jours validés"
   },
   "journal": {
     "tab_title": "Journal",

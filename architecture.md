@@ -45,6 +45,30 @@ Refonte du système de journal pour supporter plusieurs entrées par jour (CRUD)
 - **UI**: Liste déroulante (`FlatList`) des pensées du jour + Zone de saisie en bas de page.
 - **Migration**: Détection automatique du format lors du chargement (`try/catch JSON.parse`).
 
+### 4. Paramètres (Settings) & Notifications
+**Date**: 31/12/2025
+**Fichiers Modifiés**: `app/(tabs)/settings.tsx`, `utils/notifications.ts`
+
+**Description**:
+- Refonte UI avec sections pliables (Accordion) pour un design épuré.
+- **Gestion des langues** : Sélection dynamique (Français, Anglais, Arabe).
+- **Notifications** :
+  - **Sélecteur d'heure** : Matin (08:00), Midi (12:00), Soir (20:00).
+  - Test immédiat de notification.
+- **Zone de Danger** : Réinitialisation complète des données (AsyncStorage.clear).
+
+### 5. Suivi Intelligent d'Objectif (Smart Goal)
+**Date**: 31/12/2025
+**Fichiers Modifiés**: `app/(tabs)/index.tsx`, `utils/goals.ts`, `app/(onboarding)/index.tsx`
+
+**Description**:
+- Système de suivi basé sur une **Date Limite** et une **Fréquence Hebdomadaire**.
+- **Onboarding** : Ajout de date picker et slider de fréquence.
+- **Dashboard** : Widget affichant la progression et le temps restant.
+- **Logique** : Enregistrement automatique de présence (`check-in`) à l'ouverture de l'application.
+
+*Note : Le système des 4 Piliers a été retiré (31/12/2025).*
+
 ```typescript
 // Structure d'une entrée
 interface JournalEntry {

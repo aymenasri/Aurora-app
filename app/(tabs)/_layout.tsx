@@ -29,6 +29,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="goals"
+        options={{
+          title: t('goals.tab_title', 'Objectif'),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatableTabIcon focused={focused} name={focused ? "trophy" : "trophy-outline"} size={24} color={color} />
+          )
+        }}
+      />
+      <Tabs.Screen
         name="journal"
         options={{
           title: t('journal.tab_title'),

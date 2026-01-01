@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -19,6 +21,7 @@ import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 
 // 1. On importe le Hook
 import { useTranslation } from 'react-i18next';
+import { setSmartGoal } from '../../utils/goals';
 import { requestNotificationPermissions, scheduleDailyReminder } from '../../utils/notifications';
 
 const TOTAL_STEPS = 5;
@@ -29,6 +32,7 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -36,7 +40,9 @@ export default function OnboardingScreen() {
     mood: '',
     goal: '',
     category: '',
-    reminderTime: ''
+    reminderTime: '',
+    deadline: new Date(new Date().setDate(new Date().getDate() + 30)), // Default +30 days
+    frequency: 5
   });
 
   // ... (inside component)
@@ -44,7 +50,24 @@ export default function OnboardingScreen() {
   const finishOnboarding = async () => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-      await AsyncStorage.setItem('userProfile', JSON.stringify(form));
+      await AsyncStorage.setItem('userProfile', JSON.stringify({
+        name: form.name,
+        mood: form.mood,
+        goal: form.goal, // We keep simple goal for legacy consistency if needed
+        category: form.category,
+        reminderTime: form.reminderTime
+      }));
+
+      // Save Smart Goal
+      if (form.goal) {
+        await setSmartGoal({
+          title: form.goal,
+          deadline: form.deadline.toISOString().split('T')[0],
+          frequency: form.frequency,
+          startDate: new Date().toISOString().split('T')[0],
+          checkins: [new Date().toISOString().split('T')[0]] // Auto check-in first day
+        });
+      }
 
       // Demander la permission et programmer la notification
       const granted = await requestNotificationPermissions();
@@ -167,6 +190,8 @@ export default function OnboardingScreen() {
             {step === 3 && (
               <View>
                 <Text style={styles.title}>{t('onboarding.step3_title')}</Text>
+
+                <Text style={styles.label}>{t('onboarding.goal_label', "Mon objectif")}</Text>
                 <TextInput
                   style={styles.inputArea}
                   placeholder={t('onboarding.step3_placeholder')}
@@ -175,6 +200,63 @@ export default function OnboardingScreen() {
                   onChangeText={(txt) => setForm({ ...form, goal: txt })}
                   multiline
                 />
+
+                <Text style={[styles.label, { marginTop: 20 }]}>{t('onboarding.deadline_label', "Je veux l'atteindre pour le...")}</Text>
+                {Platform.OS === 'ios' ? (
+                  <DateTimePicker
+                    value={form.deadline}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => date && setForm({ ...form, deadline: date })}
+                    minimumDate={new Date()}
+                    accentColor="#6C5CE7"
+                    style={{ alignSelf: 'flex-start', marginTop: 10 }}
+                  />
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    style={styles.dateButton}
+                  >
+                    <Text style={styles.dateButtonText}>
+                      {form.deadline.toLocaleDateString()}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
+                  </TouchableOpacity>
+                )}
+                {showDatePicker && Platform.OS !== 'ios' && (
+                  <DateTimePicker
+                    value={form.deadline}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowDatePicker(false);
+                      if (date) setForm({ ...form, deadline: date });
+                    }}
+                    minimumDate={new Date()}
+                  />
+                )}
+
+                <Text style={[styles.label, { marginTop: 20 }]}>
+                  {t('onboarding.frequency_label', "Je m'engage : {{days}} jours / semaine", { days: form.frequency })}
+                </Text>
+                <View style={styles.sliderContainer}>
+                  <Slider
+                    style={{ width: '100%', height: 40 }}
+                    minimumValue={1}
+                    maximumValue={7}
+                    step={1}
+                    value={form.frequency}
+                    onValueChange={(val) => setForm({ ...form, frequency: val })}
+                    minimumTrackTintColor="#6C5CE7"
+                    maximumTrackTintColor="#dfe6e9"
+                    thumbTintColor="#6C5CE7"
+                  />
+                  <View style={styles.frequencyLabels}>
+                    <Text style={styles.freqLabel}>1j</Text>
+                    <Text style={styles.freqLabel}>7j</Text>
+                  </View>
+                </View>
+
               </View>
             )}
 
@@ -280,5 +362,13 @@ const styles = StyleSheet.create({
   footer: { padding: 30, paddingBottom: Platform.OS === 'ios' ? 40 : 30 },
   nextButton: { backgroundColor: '#A29BFE', padding: 20, borderRadius: 18, alignItems: 'center', shadowColor: '#A29BFE', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   disabledButton: { backgroundColor: '#E0E0E0', shadowOpacity: 0, elevation: 0 },
-  nextButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' }
+  nextButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+
+  // New Styles
+  label: { fontSize: 16, fontWeight: '600', color: '#636E72', marginBottom: 10 },
+  dateButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#F1F2F6', marginTop: 5 },
+  dateButtonText: { fontSize: 16, color: '#2D3436' },
+  sliderContainer: { marginTop: 10, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12 },
+  frequencyLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 10, marginTop: 5 },
+  freqLabel: { fontSize: 12, color: '#B2BEC3' }
 });

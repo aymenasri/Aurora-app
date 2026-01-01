@@ -33,7 +33,30 @@
     "daily_quote": "Daily Wisdom",
     "quote_text": "The only impossible journey is the one you never begin.",
     "feeling_question": "Still feeling {{mood}}?",
-    "check_in": "Check in"
+    "check_in": "Check in",
+    "goal_title": "My Goal",
+    "pillars_title": "My Balance",
+    "pillar_mind": "Mind",
+    "pillar_body": "Body",
+    "pillar_work": "Work",
+    "pillar_soul": "Soul"
+  },
+  "goals": {
+    "tab_title": "Goal",
+    "page_title": "My Goal",
+    "summary_title": "Progress",
+    "calendar_title": "History",
+    "stats_title": "Statistics",
+    "streak": "Current Streak",
+    "total_days": "Total Days",
+    "edit_button": "Edit Goal",
+    "frequency_label": "Frequency: {{count}}d / week",
+    "deadline_label": "Deadline",
+    "days_left": "Days Left",
+    "target_prefix": "Target:",
+    "days_per_week_suffix": "d / week",
+    "days_remaining_suffix": "days left",
+    "days_validated_suffix": "days validated"
   },
   "journal": {
     "tab_title": "Journal",
