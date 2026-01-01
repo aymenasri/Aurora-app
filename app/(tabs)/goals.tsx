@@ -1,196 +1,332 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
     ScrollView,
+    SectionList,
     StyleSheet,
     Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
     View
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
 import PageTransition from '../../components/PageTransition';
+
+// Import Types and Utils
+const { getGoals, addGoal, updateGoal, deleteGoal, calculateGoalProgress, GOAL_CATEGORIES } = require('../../utils/goals');
 
 export default function GoalsScreen() {
     const { t, i18n } = useTranslation();
-    const [smartGoal, setSmartGoal] = useState<any>(null);
-    const [goalStats, setGoalStats] = useState<any>({ percentage: 0, daysRemaining: 0, currentCheckins: 0 });
-    const [markedDates, setMarkedDates] = useState<any>({});
+
+    // State
+    const [goals, setGoals] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Modal State
+    const [modalVisible, setModalVisible] = useState(false);
+    const [editingGoal, setEditingGoal] = useState<any>(null);
+    const [title, setTitle] = useState('');
+    const [category, setCategory] = useState<string>(GOAL_CATEGORIES[0]);
+    const [frequency, setFrequency] = useState(3);
+    const [deadline, setDeadline] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // ~1 month
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
-            loadGoalData();
+            loadGoals();
         }, [])
     );
 
-    const loadGoalData = async () => {
-        try {
-            const { getSmartGoal, calculateGoalProgress } = require('../../utils/goals');
-            const goal = await getSmartGoal();
-            if (goal) {
-                setSmartGoal(goal);
-                setGoalStats(calculateGoalProgress(goal));
+    const loadGoals = async () => {
+        setLoading(true);
+        const data = await getGoals();
+        setGoals(data);
+        setLoading(false);
+    };
 
-                // Prepare marked dates for calendar
-                const marks: any = {};
-                goal.checkins.forEach((date: string) => {
-                    marks[date] = { selected: true, selectedColor: '#6C5CE7' };
-                });
+    const handleAddPress = () => {
+        setEditingGoal(null);
+        setTitle('');
+        setCategory(GOAL_CATEGORIES[0]);
+        setFrequency(3);
+        setDeadline(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+        setModalVisible(true);
+    };
 
-                // Mark today differently if checked in
-                const today = new Date().toISOString().split('T')[0];
-                if (marks[today]) {
-                    marks[today] = { selected: true, selectedColor: '#55EFC4', marked: true, dotColor: '#FFF' };
-                }
+    const handleEditPress = (goal: any) => {
+        setEditingGoal(goal);
+        setTitle(goal.title);
+        setCategory(goal.category);
+        setFrequency(goal.frequency);
+        setDeadline(new Date(goal.deadline));
+        setModalVisible(true);
+    };
 
-                setMarkedDates(marks);
-            }
-        } catch (e) {
-            console.error("Failed to load goal", e);
+    const handleDeletePress = (id: string) => {
+        const confirmDelete = () => {
+            deleteGoal(id).then(loadGoals);
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm("Supprimer cet objectif ?")) confirmDelete();
+        } else {
+            Alert.alert(
+                t('common.delete', 'Supprimer'),
+                t('goals.delete_confirmation', 'Voulez-vous vraiment supprimer cet objectif ?'),
+                [
+                    { text: t('common.cancel', 'Annuler'), style: 'cancel' },
+                    { text: t('common.delete', 'Supprimer'), style: 'destructive', onPress: confirmDelete }
+                ]
+            );
         }
     };
 
-    if (!smartGoal) {
+    const handleSave = async () => {
+        if (!title.trim()) return;
+
+        const goalData = {
+            title,
+            category,
+            frequency,
+            deadline: deadline.toISOString(),
+        };
+
+        if (editingGoal) {
+            await updateGoal({ ...editingGoal, ...goalData });
+        } else {
+            await addGoal({
+                ...goalData,
+                startDate: new Date().toISOString()
+            });
+        }
+
+        setModalVisible(false);
+        loadGoals();
+    };
+
+    // Prepare Sections for List
+    const sections = GOAL_CATEGORIES.map((cat: string) => ({
+        title: cat,
+        data: goals.filter(g => g.category === cat)
+    })).filter(section => section.data.length > 0);
+
+    const renderGoalItem = ({ item }: { item: any }) => {
+        const stats = calculateGoalProgress(item);
         return (
-            <PageTransition style={styles.container}>
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>{t('goals.no_goal', 'Aucun objectif défini.')}</Text>
-                </View>
-            </PageTransition>
+            <TouchableOpacity
+                style={styles.goalCard}
+                onPress={() => handleEditPress(item)}
+                onLongPress={() => handleDeletePress(item.id)}
+            >
+                <LinearGradient
+                    colors={['#ffffff', '#f8f9fa']}
+                    style={styles.goalCardGradient}
+                >
+                    <View style={styles.goalHeader}>
+                        <Text style={styles.goalTitle}>{item.title}</Text>
+                        <Text style={styles.goalProgress}>{stats.percentage}%</Text>
+                    </View>
+
+                    <View style={styles.progressBarBg}>
+                        <View style={[styles.progressBarFill, { width: `${stats.percentage}%`, backgroundColor: getCategoryColor(item.category) }]} />
+                    </View>
+
+                    <View style={styles.goalFooter}>
+                        <Text style={styles.goalMeta}>{stats.daysRemaining}j restants</Text>
+                        <Text style={styles.goalMeta}>{item.frequency}x / sem</Text>
+                    </View>
+                </LinearGradient>
+            </TouchableOpacity>
         );
-    }
+    };
+
+    const getCategoryColor = (cat: string) => {
+        switch (cat) {
+            case 'Santé Mentale': return '#A29BFE';
+            case 'Santé Physique': return '#55EFC4';
+            case 'Carrière': return '#74B9FF';
+            case 'Développement Personnel': return '#FDCB6E';
+            default: return '#6C5CE7';
+        }
+    };
 
     return (
         <PageTransition style={styles.container}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* HEADER */}
-                <LinearGradient
-                    colors={['#E3F2FD', '#FFFFFF']} // Light blue fade 
-                    style={styles.header}
-                >
-                    <Text style={styles.pageTitle}>{t('goals.page_title', 'Mon Objectif')}</Text>
-                    <View style={styles.headerIconBg}>
-                        <Ionicons name="trophy" size={24} color="#FDCB6E" />
-                    </View>
-                </LinearGradient>
+            <LinearGradient colors={['#E3F2FD', '#FFFFFF']} style={styles.header}>
+                <Text style={styles.pageTitle}>{t('goals.page_title', 'Mes Objectifs')}</Text>
+                <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+                    <Ionicons name="add" size={24} color="#FFF" />
+                </TouchableOpacity>
+            </LinearGradient>
 
-                <View style={styles.content}>
-                    {/* SUMMARY CARD */}
-                    <View style={styles.summaryCard}>
-                        <LinearGradient
-                            colors={['#6C5CE7', '#A29BFE']}
-                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                            style={styles.summaryGradient}
-                        >
-                            <Text style={styles.goalTitle}>{smartGoal.title}</Text>
-
-                            <View style={styles.progressContainer}>
-                                <View style={styles.progressBar}>
-                                    <View style={[styles.progressFill, { width: `${goalStats.percentage}%` }]} />
-                                </View>
-                                <Text style={styles.progressLabel}>{goalStats.percentage}%</Text>
-                            </View>
-
-                            <View style={styles.metaContainer}>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.8)" />
-                                    <Text style={styles.metaText}>
-                                        {new Date(smartGoal.deadline).toLocaleDateString(i18n.language)}
-                                    </Text>
-                                </View>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="repeat-outline" size={16} color="rgba(255,255,255,0.8)" />
-                                    <Text style={styles.metaText}>
-                                        {smartGoal.frequency}j / sem
-                                    </Text>
-                                </View>
-                            </View>
-                        </LinearGradient>
-                    </View>
-
-                    {/* STATS ROW */}
-                    <View style={styles.statsRow}>
-                        <View style={styles.statCard}>
-                            <Text style={styles.statValue}>{goalStats.currentCheckins}</Text>
-                            <Text style={styles.statLabel}>{t('goals.total_days', 'Jours Totaux')}</Text>
-                        </View>
-                        <View style={styles.statCard}>
-                            <Text style={[styles.statValue, { color: '#FD79A8' }]}>{goalStats.daysRemaining}</Text>
-                            <Text style={styles.statLabel}>{t('goals.days_left', 'Jours Restants')}</Text>
-                        </View>
-                    </View>
-
-                    {/* CALENDAR */}
-                    <View style={styles.calendarCard}>
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="calendar" size={20} color="#6C5CE7" />
-                            <Text style={styles.sectionTitle}>{t('goals.calendar_title', 'Historique')}</Text>
-                        </View>
-                        <Calendar
-                            markedDates={markedDates}
-                            theme={{
-                                todayTextColor: '#6C5CE7',
-                                arrowColor: '#6C5CE7',
-                                textDayFontWeight: '500',
-                                textMonthFontWeight: 'bold',
-                                textDayHeaderFontWeight: 'bold'
-                            }}
-                            // Disable interactions for now, just visualization
-                            disableAllTouchEventsForDisabledDays={true}
-                        />
-                    </View>
-
+            {sections.length === 0 && !loading ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Aucun objectif pour le moment.</Text>
+                    <TouchableOpacity style={styles.emptyBtn} onPress={handleAddPress}>
+                        <Text style={styles.emptyBtnText}>Commencer</Text>
+                    </TouchableOpacity>
                 </View>
-            </ScrollView>
+            ) : (
+                <SectionList
+                    sections={sections}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderGoalItem}
+                    renderSectionHeader={({ section: { title } }) => (
+                        <Text style={styles.sectionHeader}>{title}</Text>
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    stickySectionHeadersEnabled={false}
+                />
+            )}
+
+            {/* MODAL AJOUT / EDITION */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalContainer}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{editingGoal ? 'Modifier' : 'Nouvel Objectif'}</Text>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color="#636E72" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={{ maxHeight: 400 }}>
+                                <Text style={styles.label}>Titre</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Ex: Méditer 10 min..."
+                                    value={title}
+                                    onChangeText={setTitle}
+                                />
+
+                                <Text style={styles.label}>Catégorie</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                                    {GOAL_CATEGORIES.map((cat: string) => (
+                                        <TouchableOpacity
+                                            key={cat}
+                                            style={[styles.categoryChip, category === cat && styles.categoryChipSelected]}
+                                            onPress={() => setCategory(cat)}
+                                        >
+                                            <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>{cat}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+
+                                <Text style={styles.label}>Fréquence ({frequency} fois/semaine)</Text>
+                                <Slider
+                                    style={{ width: '100%', height: 40 }}
+                                    minimumValue={1}
+                                    maximumValue={7}
+                                    step={1}
+                                    value={frequency}
+                                    onValueChange={setFrequency}
+                                    minimumTrackTintColor="#6C5CE7"
+                                    maximumTrackTintColor="#DFE6E9"
+                                    thumbTintColor="#6C5CE7"
+                                />
+
+                                <Text style={styles.label}>Date limite</Text>
+                                <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(!showDatePicker)}>
+                                    <Text style={styles.dateText}>{deadline.toLocaleDateString()}</Text>
+                                    <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
+                                </TouchableOpacity>
+
+                                {showDatePicker && (
+                                    <DateTimePicker
+                                        value={deadline}
+                                        mode="date"
+                                        display="default"
+                                        minimumDate={new Date()}
+                                        onChange={(event, date) => {
+                                            if (Platform.OS === 'android') {
+                                                setShowDatePicker(false);
+                                            }
+                                            if (date) setDeadline(date);
+                                        }}
+                                    />
+                                )}
+                            </ScrollView>
+
+                            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                                <Text style={styles.saveBtnText}>Enregistrer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </Modal>
         </PageTransition>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFF' },
-    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    emptyText: { fontSize: 16, color: '#B2BEC3' },
-
+    container: { flex: 1, backgroundColor: '#F8F9FA' },
     header: {
         paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20,
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        borderBottomLeftRadius: 20, borderBottomRightRadius: 20
+        borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+        marginBottom: 10
     },
-    pageTitle: { fontSize: 28, fontWeight: '800', color: '#2D3436' },
-    headerIconBg: { backgroundColor: '#FFF', padding: 8, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
+    pageTitle: { fontSize: 24, fontWeight: '800', color: '#2D3436' },
+    addButton: { backgroundColor: '#6C5CE7', padding: 10, borderRadius: 12, shadowColor: '#6C5CE7', shadowOpacity: 0.3, shadowRadius: 5 },
 
-    content: { padding: 20 },
+    listContent: { padding: 20, paddingBottom: 100 },
+    sectionHeader: { fontSize: 18, fontWeight: '700', color: '#636E72', marginTop: 20, marginBottom: 10 },
 
-    summaryCard: {
-        borderRadius: 24, marginBottom: 25,
-        shadowColor: '#6C5CE7', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 8,
+    goalCard: {
+        marginBottom: 15, borderRadius: 16,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+        backgroundColor: '#FFF'
     },
-    summaryGradient: { padding: 25, borderRadius: 24 },
-    goalTitle: { fontSize: 22, fontWeight: 'bold', color: '#FFF', marginBottom: 20 },
-    progressContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    progressBar: { flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, marginRight: 15 },
-    progressFill: { height: '100%', backgroundColor: '#FFF', borderRadius: 4 },
-    progressLabel: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+    goalCardGradient: { padding: 20, borderRadius: 16 },
+    goalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    goalTitle: { fontSize: 16, fontWeight: '700', color: '#2D3436' },
+    goalProgress: { fontWeight: 'bold', color: '#6C5CE7' },
+    progressBarBg: { height: 6, backgroundColor: '#F1F2F6', borderRadius: 3, marginBottom: 10, overflow: 'hidden' },
+    progressBarFill: { height: '100%', borderRadius: 3 },
+    goalFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+    goalMeta: { fontSize: 12, color: '#B2BEC3' },
 
-    metaContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
-    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    metaText: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '600' },
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyText: { fontSize: 16, color: '#B2BEC3', marginBottom: 20 },
+    emptyBtn: { backgroundColor: '#6C5CE7', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 25 },
+    emptyBtnText: { color: '#FFF', fontWeight: 'bold' },
 
-    statsRow: { flexDirection: 'row', gap: 15, marginBottom: 25 },
-    statCard: {
-        flex: 1, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 16,
-        alignItems: 'center', justifyContent: 'center',
-        borderWidth: 1, borderColor: '#F0F0F0'
-    },
-    statValue: { fontSize: 24, fontWeight: '800', color: '#6C5CE7', marginBottom: 5 },
-    statLabel: { fontSize: 12, color: '#636E72', textTransform: 'uppercase', fontWeight: '600' },
+    // Modal
+    modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+    modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#2D3436' },
+    label: { fontSize: 14, fontWeight: '600', color: '#636E72', marginTop: 15, marginBottom: 8 },
+    input: { backgroundColor: '#F1F2F6', padding: 12, borderRadius: 12, fontSize: 16 },
 
-    calendarCard: {
-        backgroundColor: '#FFF', borderRadius: 24, padding: 20,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 5,
-        borderWidth: 1, borderColor: '#F0F0F0'
-    },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 15 },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#2D3436' }
+    categoryScroll: { flexDirection: 'row', marginBottom: 5 },
+    categoryChip: { paddingHorizontal: 15, paddingVertical: 8, backgroundColor: '#F1F2F6', borderRadius: 20, marginRight: 10 },
+    categoryChipSelected: { backgroundColor: '#6C5CE7' },
+    categoryText: { color: '#636E72', fontWeight: '600' },
+    categoryTextSelected: { color: '#FFF' },
+
+    dateBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F1F2F6', padding: 12, borderRadius: 12 },
+    dateText: { fontSize: 16, color: '#2D3436' },
+
+    saveBtn: { backgroundColor: '#00B894', padding: 15, borderRadius: 15, alignItems: 'center', marginTop: 25, marginBottom: 20 },
+    saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });

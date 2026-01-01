@@ -51,12 +51,15 @@ export default function Dashboard() {
       if (jsonValue != null) setUser(JSON.parse(jsonValue));
 
       // 2. Charger et Mettre à jour le Smart Goal
-      const { registerDailyCheckin, calculateGoalProgress, getSmartGoal } = require('../../utils/goals');
-      // On tente d'abord de récupérer, si existe on register le checkin
-      let currentGoal = await getSmartGoal();
+      const { registerDailyCheckin, calculateGoalProgress, getPrincipalGoal } = require('../../utils/goals');
+
+      // Enregistrer le checkin quotidien (pour tous les objectifs actifs)
+      await registerDailyCheckin();
+
+      // Récupérer l'objectif principal pour l'affichage
+      const currentGoal = await getPrincipalGoal();
+
       if (currentGoal) {
-        // Auto Check-in logic: if user opens the app, we count it (if not already counted today)
-        currentGoal = await registerDailyCheckin();
         setSmartGoalState(currentGoal);
         setGoalStats(calculateGoalProgress(currentGoal));
       }
@@ -165,7 +168,7 @@ export default function Dashboard() {
               >
                 <View style={styles.goalHeader}>
                   <View>
-                    <Text style={styles.goalLabel}>{t('dashboard.goal_title', 'Mon Objectif')}</Text>
+                    <Text style={styles.goalLabel}>{t('dashboard.goal_title', 'Mon Objectif Principal')}</Text>
                     <Text style={styles.goalTitle}>{smartGoal.title}</Text>
                   </View>
                   <View style={styles.goalBadge}>
