@@ -16,6 +16,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import PageTransition from '../../components/PageTransition';
 import { QUOTES } from '../../constants/quotes';
+import { formatDate } from '../../utils/date';
 
 const { width } = Dimensions.get('window');
 
@@ -129,7 +130,7 @@ export default function Dashboard() {
         <LinearGradient colors={['#E3F2FD', '#FFFFFF']} style={styles.header}>
           <View style={styles.headerContent}>
             <View>
-              <Text style={styles.date}>{new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
+              <Text style={styles.date}>{formatDate(new Date(), i18n.language)}</Text>
               <Text style={styles.greeting}>
                 {t(getGreeting(), { name: user?.name || 'Toi' })}
               </Text>

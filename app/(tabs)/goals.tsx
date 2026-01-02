@@ -20,7 +20,10 @@ import {
     TouchableWithoutFeedback,
     View
 } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Animated, { LinearTransition, SlideOutLeft } from 'react-native-reanimated';
 import PageTransition from '../../components/PageTransition';
+import { formatDate } from '../../utils/date';
 
 // Import Types and Utils
 const { getGoals, addGoal, updateGoal, deleteGoal, calculateGoalProgress, GOAL_CATEGORIES } = require('../../utils/goals');
@@ -47,11 +50,11 @@ export default function GoalsScreen() {
         }, [])
     );
 
-    const loadGoals = async () => {
-        setLoading(true);
+    const loadGoals = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         const data = await getGoals();
         setGoals(data);
-        setLoading(false);
+        if (showLoading) setLoading(false);
     };
 
     const handleAddPress = () => {
@@ -74,7 +77,11 @@ export default function GoalsScreen() {
 
     const handleDeletePress = (id: string) => {
         const confirmDelete = () => {
-            deleteGoal(id).then(loadGoals);
+            // Optimistic Update
+            setGoals(currentGoals => currentGoals.filter(g => g.id !== id));
+
+            // Background delete
+            deleteGoal(id).then(() => loadGoals(false));
         };
 
         if (Platform.OS === 'web') {
@@ -120,42 +127,62 @@ export default function GoalsScreen() {
         data: goals.filter(g => g.category === cat)
     })).filter(section => section.data.length > 0);
 
+    const renderRightActions = (progress: any, dragX: any, id: string) => {
+        return (
+            <TouchableOpacity
+                style={styles.deleteAction}
+                onPress={() => handleDeletePress(id)}
+            >
+                <Ionicons name="trash-outline" size={24} color="#FFF" />
+                <Text style={styles.deleteActionText}>Supprimer</Text>
+            </TouchableOpacity>
+        );
+    };
+
     const renderGoalItem = ({ item }: { item: any }) => {
         const stats = calculateGoalProgress(item);
         return (
-            <TouchableOpacity
-                style={styles.goalCard}
-                onPress={() => handleEditPress(item)}
-                onLongPress={() => handleDeletePress(item.id)}
-            >
-                <LinearGradient
-                    colors={['#ffffff', '#f8f9fa']}
-                    style={styles.goalCardGradient}
-                >
-                    <View style={styles.goalHeader}>
-                        <Text style={styles.goalTitle}>{item.title}</Text>
-                        <Text style={styles.goalProgress}>{stats.percentage}%</Text>
-                    </View>
+            <Animated.View exiting={SlideOutLeft} layout={LinearTransition}>
+                <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item.id)}>
+                    <TouchableOpacity
+                        style={styles.goalCard}
+                        onPress={() => handleEditPress(item)}
+                        activeOpacity={0.9}
+                    >
+                        <LinearGradient
+                            colors={['#ffffff', '#f8f9fa']}
+                            style={styles.goalCardGradient}
+                        >
+                            <View style={styles.goalHeader}>
+                                <View style={{ flex: 1, marginRight: 10 }}>
+                                    <Text style={styles.goalTitle} numberOfLines={1}>{item.title}</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                    <Text style={styles.goalProgress}>{stats.percentage}%</Text>
+                                </View>
+                            </View>
 
-                    <View style={styles.progressBarBg}>
-                        <View style={[styles.progressBarFill, { width: `${stats.percentage}%`, backgroundColor: getCategoryColor(item.category) }]} />
-                    </View>
+                            <View style={styles.progressBarBg}>
+                                <View style={[styles.progressBarFill, { width: `${stats.percentage}%`, backgroundColor: getCategoryColor(item.category) }]} />
+                            </View>
 
-                    <View style={styles.goalFooter}>
-                        <Text style={styles.goalMeta}>{stats.daysRemaining}j restants</Text>
-                        <Text style={styles.goalMeta}>{item.frequency}x / sem</Text>
-                    </View>
-                </LinearGradient>
-            </TouchableOpacity>
+                            <View style={styles.goalFooter}>
+                                <Text style={styles.goalMeta}>{stats.daysRemaining} {t('goals.days_remaining_suffix')}</Text>
+                                <Text style={styles.goalMeta}>{item.frequency} {t('goals.days_per_week_suffix')}</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Swipeable>
+            </Animated.View>
         );
     };
 
     const getCategoryColor = (cat: string) => {
         switch (cat) {
-            case 'Santé Mentale': return '#A29BFE';
-            case 'Santé Physique': return '#55EFC4';
-            case 'Carrière': return '#74B9FF';
-            case 'Développement Personnel': return '#FDCB6E';
+            case 'mental': return '#A29BFE';
+            case 'physical': return '#55EFC4';
+            case 'career': return '#74B9FF';
+            case 'personal': return '#FDCB6E';
             default: return '#6C5CE7';
         }
     };
@@ -171,9 +198,9 @@ export default function GoalsScreen() {
 
             {sections.length === 0 && !loading ? (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Aucun objectif pour le moment.</Text>
+                    <Text style={styles.emptyText}>{t('goals.empty_state')}</Text>
                     <TouchableOpacity style={styles.emptyBtn} onPress={handleAddPress}>
-                        <Text style={styles.emptyBtnText}>Commencer</Text>
+                        <Text style={styles.emptyBtnText}>{t('goals.start_button')}</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
@@ -182,7 +209,7 @@ export default function GoalsScreen() {
                     keyExtractor={(item) => item.id}
                     renderItem={renderGoalItem}
                     renderSectionHeader={({ section: { title } }) => (
-                        <Text style={styles.sectionHeader}>{title}</Text>
+                        <Text style={styles.sectionHeader}>{t(`onboarding.cat_${title}`, { defaultValue: title })}</Text>
                     )}
                     contentContainerStyle={styles.listContent}
                     stickySectionHeadersEnabled={false}
@@ -203,22 +230,22 @@ export default function GoalsScreen() {
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{editingGoal ? 'Modifier' : 'Nouvel Objectif'}</Text>
+                                <Text style={styles.modalTitle}>{editingGoal ? t('goals.edit_goal') : t('goals.new_goal')}</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                                     <Ionicons name="close" size={24} color="#636E72" />
                                 </TouchableOpacity>
                             </View>
 
                             <ScrollView style={{ maxHeight: 400 }}>
-                                <Text style={styles.label}>Titre</Text>
+                                <Text style={styles.label}>{t('goals.title_label')}</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Ex: Méditer 10 min..."
+                                    placeholder={t('goals.title_placeholder')}
                                     value={title}
                                     onChangeText={setTitle}
                                 />
 
-                                <Text style={styles.label}>Catégorie</Text>
+                                <Text style={styles.label}>{t('goals.category_label')}</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
                                     {GOAL_CATEGORIES.map((cat: string) => (
                                         <TouchableOpacity
@@ -226,12 +253,14 @@ export default function GoalsScreen() {
                                             style={[styles.categoryChip, category === cat && styles.categoryChipSelected]}
                                             onPress={() => setCategory(cat)}
                                         >
-                                            <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>{cat}</Text>
+                                            <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>
+                                                {t(`onboarding.cat_${cat}`, { defaultValue: cat })}
+                                            </Text>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
 
-                                <Text style={styles.label}>Fréquence ({frequency} fois/semaine)</Text>
+                                <Text style={styles.label}>{t('goals.frequency_label', { count: frequency })}</Text>
                                 <Slider
                                     style={{ width: '100%', height: 40 }}
                                     minimumValue={1}
@@ -244,9 +273,9 @@ export default function GoalsScreen() {
                                     thumbTintColor="#6C5CE7"
                                 />
 
-                                <Text style={styles.label}>Date limite</Text>
+                                <Text style={styles.label}>{t('goals.deadline_label')}</Text>
                                 <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(!showDatePicker)}>
-                                    <Text style={styles.dateText}>{deadline.toLocaleDateString()}</Text>
+                                    <Text style={styles.dateText}>{formatDate(deadline, i18n.language)}</Text>
                                     <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
                                 </TouchableOpacity>
 
@@ -267,8 +296,17 @@ export default function GoalsScreen() {
                             </ScrollView>
 
                             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                                <Text style={styles.saveBtnText}>Enregistrer</Text>
+                                <Text style={styles.saveBtnText}>{t('common.save')}</Text>
                             </TouchableOpacity>
+
+                            {editingGoal && (
+                                <TouchableOpacity style={styles.deleteBtn} onPress={() => {
+                                    setModalVisible(false);
+                                    handleDeletePress(editingGoal.id);
+                                }}>
+                                    <Text style={styles.deleteBtnText}>{t('common.delete', 'Supprimer')}</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
@@ -327,6 +365,20 @@ const styles = StyleSheet.create({
     dateBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F1F2F6', padding: 12, borderRadius: 12 },
     dateText: { fontSize: 16, color: '#2D3436' },
 
-    saveBtn: { backgroundColor: '#00B894', padding: 15, borderRadius: 15, alignItems: 'center', marginTop: 25, marginBottom: 20 },
-    saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
+    saveBtn: { backgroundColor: '#00B894', padding: 15, borderRadius: 15, alignItems: 'center', marginTop: 25, marginBottom: 10 },
+    saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+    deleteBtn: { backgroundColor: '#FF7675', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 20 },
+    deleteBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+
+    deleteAction: {
+        backgroundColor: '#FF7675',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 100,
+        height: '100%',
+        marginBottom: 15,
+        borderRadius: 16,
+        marginLeft: 10
+    },
+    deleteActionText: { color: '#FFF', fontWeight: 'bold', marginTop: 5, fontSize: 12 }
 });

@@ -15,6 +15,9 @@
         "cat_productivity": "الإنتاجية",
         "cat_physical": "اللياقة البدنية",
         "cat_career": "المسار المهني",
+        "cat_personal": "تطوير الذات",
+        "cat_hobbies": "هوايات",
+        "cat_other": "أخرى",
         "step5_title": "متى تريد تخصيص 5 دقائق لنفسك؟",
         "step5_subtitle": "سنرسل لك تذكيراً صغيراً ومحفزاً.",
         "time_morning": "🌅 الصباح (08:00)",
@@ -49,7 +52,8 @@
         "empty_state": "لا توجد مدخلات لهذا اليوم.",
         "dashboard_widget_title": "مذكرتك",
         "dashboard_cta": "اكتب فكرة اليوم",
-        "dashboard_preview": "لقد كتبت: \"{{text}}...\""
+        "dashboard_preview": "لقد كتبت: \"{{text}}...\"",
+        "for_date": "لـ :"
     },
     "settings": {
         "title": "الإعدادات",
@@ -78,6 +82,18 @@
         "target_prefix": "الهدف :",
         "days_per_week_suffix": "أيام / أسبوع",
         "days_remaining_suffix": "أيام متبقية",
-        "days_validated_suffix": "أيام تم التحقق منها"
+        "days_validated_suffix": "أيام تم التحقق منها",
+        "empty_state": "لا توجد أهداف حالياً.",
+        "start_button": "ابدأ",
+        "new_goal": "هدف جديد",
+        "edit_goal": "تعديل",
+        "title_label": "العنوان",
+        "category_label": "الفئة",
+        "title_placeholder": "مثال: تأمل 10 دقائق..."
+    },
+    "common": {
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "delete": "حذف"
     }
 }

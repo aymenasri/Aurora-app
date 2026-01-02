@@ -13,8 +13,9 @@
     "step4_title": "Choisis un domaine",
     "cat_mental": "Santé Mentale",
     "cat_productivity": "Productivité",
-    "cat_physical": "Forme Physique",
-    "cat_career": "Carrière",
+    "cat_personal": "Développement Personnel",
+    "cat_hobbies": "Loisirs",
+    "cat_other": "Autre",
     "step5_title": "Quand veux-tu prendre 5 min pour toi ?",
     "step5_subtitle": "On t'enverra un petit rappel motivant.",
     "time_morning": "🌅 Matin (08:00)",
@@ -56,7 +57,20 @@
     "target_prefix": "Cible :",
     "days_per_week_suffix": "j / sem",
     "days_remaining_suffix": "j restants",
-    "days_validated_suffix": "jours validés"
+    "days_remaining_suffix": "j restants",
+    "days_validated_suffix": "jours validés",
+    "empty_state": "Aucun objectif pour le moment.",
+    "start_button": "Commencer",
+    "new_goal": "Nouvel Objectif",
+    "edit_goal": "Modifier",
+    "title_label": "Titre",
+    "category_label": "Catégorie",
+    "title_placeholder": "Ex: Méditer 10 min..."
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer"
   },
   "journal": {
     "tab_title": "Journal",
@@ -66,7 +80,8 @@
     "empty_state": "Aucune entrée pour ce jour.",
     "dashboard_widget_title": "Ton Journal",
     "dashboard_cta": "Écrire ma pensée du jour",
-    "dashboard_preview": "Tu as écrit : \"{{text}}...\""
+    "dashboard_preview": "Tu as écrit : \"{{text}}...\"",
+    "for_date": "Pour :"
   },
   "settings": {
     "title": "Paramètres",

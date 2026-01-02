@@ -17,7 +17,10 @@ import {
   View
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 import PageTransition from '../../components/PageTransition';
+import { formatDate, formatTime } from '../../utils/date';
 
 // Configuration des locales pour react-native-calendars
 LocaleConfig.locales['fr'] = {
@@ -63,7 +66,8 @@ interface JournalEntry {
 
 export default function JournalScreen() {
   const { t, i18n } = useTranslation();
-  const [sections, setSections] = useState<{ title: string; data: JournalEntry[] }[]>([]);
+  const [sections, setSections] = useState<{ title: string; dateKey: string; data: JournalEntry[] }[]>([]);
+  const sectionListRef = React.useRef<SectionList>(null);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -159,24 +163,30 @@ export default function JournalScreen() {
       const key = getStorageKey(dateOfEntry);
 
       try {
+        // Optimistic Update
+        setSections(currentSections => {
+          return currentSections.map(section => ({
+            ...section,
+            data: section.data.filter(item => item.id !== entryToDelete.id)
+          })).filter(section => section.data.length > 0);
+        });
+
+        // Background persistence logic
+        const key = getStorageKey(dateOfEntry);
         const stored = await AsyncStorage.getItem(key);
         if (stored) {
           let currentEntries: JournalEntry[] = [];
           try {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) {
-              currentEntries = parsed;
-            } else {
-              currentEntries = [{ id: `legacy_${key}`, content: stored, createdAt: dateOfEntry.getTime() }];
-            }
+            if (Array.isArray(parsed)) currentEntries = parsed;
+            else currentEntries = [{ id: `legacy_${key}`, content: stored, createdAt: dateOfEntry.getTime() }];
           } catch {
             currentEntries = [{ id: `legacy_${key}`, content: stored, createdAt: dateOfEntry.getTime() }];
           }
 
           const isLegacy = entryToDelete.id.startsWith('legacy_') || !currentEntries.find(e => e.id === entryToDelete.id);
-
           const updated = currentEntries.filter(e => {
-            if (isLegacy && currentEntries.length === 1) return false; // Delete the only legacy item
+            if (isLegacy && currentEntries.length === 1) return false;
             return e.id !== entryToDelete.id;
           });
 
@@ -185,7 +195,7 @@ export default function JournalScreen() {
           } else {
             await AsyncStorage.setItem(key, JSON.stringify(updated));
           }
-          loadAllEntries();
+          loadAllEntries(false); // Silent reload
         }
       } catch (e: any) { alert("Erreur suppression: " + e.message); }
     };
@@ -205,11 +215,11 @@ export default function JournalScreen() {
   useFocusEffect(
     useCallback(() => {
       loadAllEntries();
-    }, [])
+    }, [i18n.language])
   );
 
-  const loadAllEntries = async () => {
-    setLoading(true);
+  const loadAllEntries = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       // 1. Récupérer toutes les clés
       const keys = await AsyncStorage.getAllKeys();
@@ -218,7 +228,7 @@ export default function JournalScreen() {
       // 2. Récupérer toutes les valeurs
       const stores = await AsyncStorage.multiGet(journalKeys);
 
-      const newSections: { title: string; data: JournalEntry[] }[] = [];
+      const newSections: { title: string; dateKey: string; data: JournalEntry[] }[] = [];
 
       stores.forEach(([key, value]) => {
         if (!value) return;
@@ -227,9 +237,7 @@ export default function JournalScreen() {
         const dateStr = key.replace('journal_', '');
         const dateObj = new Date(dateStr);
         // Formater le titre de la section (ex: "Lundi 30 Décembre")
-        const sectionTitle = dateObj.toLocaleDateString(i18n.language, {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-        });
+        const sectionTitle = formatDate(dateObj, i18n.language);
 
         let dayEntries: JournalEntry[] = [];
         try {
@@ -247,8 +255,11 @@ export default function JournalScreen() {
         // Trier les entrées du jour (plus récentes en bas ou en haut ? Standard journal : chronologique dans la journée)
         // Ici on garde l'ordre d'ajout (chronologique)
         if (dayEntries.length > 0) {
-          newSections.push({ title: sectionTitle, data: dayEntries.reverse() }); // On inverse pour avoir les plus récents en haut de la section aussi ? Ou on garde l'ordre ? 
-          // Choix: Plus récent en haut partout pour "Timeline"
+          newSections.push({
+            title: sectionTitle,
+            dateKey: dateStr,
+            data: dayEntries.reverse()
+          });
         }
       });
 
@@ -257,7 +268,7 @@ export default function JournalScreen() {
     } catch (e) {
       console.error("Erreur chargement journal:", e);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -312,27 +323,40 @@ export default function JournalScreen() {
 
 
 
-  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
+  const renderSectionHeader = ({ section: { title } }: any) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionHeaderText}>{title}</Text>
     </View>
   );
 
-  const renderEntryObj = ({ item }: { item: JournalEntry }) => (
-    <View style={styles.entryCard}>
+  const renderRightActions = (progress: any, dragX: any, item: JournalEntry) => {
+    return (
       <TouchableOpacity
-        style={{ flex: 1 }}
-        onPress={() => openEditModal(item)}
+        style={styles.deleteAction}
+        onPress={() => deleteEntry(item)}
       >
-        <Text style={styles.entryText}>{item.content}</Text>
-        <Text style={styles.entryTime}>
-          {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
+        <Ionicons name="trash-outline" size={24} color="#FFF" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => deleteEntry(item)} style={styles.deleteButton}>
-        <Ionicons name="trash-outline" size={18} color="#FF7675" />
-      </TouchableOpacity>
-    </View>
+    );
+  };
+
+  const renderEntryObj = ({ item }: { item: JournalEntry }) => (
+    <Animated.View exiting={FadeOut} layout={LinearTransition}>
+      <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)}>
+        <View style={styles.entryCardWrapper}>
+          <TouchableOpacity
+            style={styles.entryCard}
+            onPress={() => openEditModal(item)}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.entryText}>{item.content}</Text>
+            <Text style={styles.entryTime}>
+              {formatTime(new Date(item.createdAt), i18n.language)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Swipeable>
+    </Animated.View>
   );
 
   const isTargetToday = targetDate.toDateString() === new Date().toDateString();
@@ -358,6 +382,7 @@ export default function JournalScreen() {
 
           {/* TIMELINE LIST */}
           <SectionList
+            ref={sectionListRef}
             sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={renderEntryObj}
@@ -412,8 +437,22 @@ export default function JournalScreen() {
               <View style={styles.calendarModal}>
                 <Calendar
                   onDayPress={(day: any) => {
-                    setTargetDate(new Date(day.timestamp));
+                    const newDate = new Date(day.timestamp);
+                    setTargetDate(newDate);
                     setShowCalendar(false);
+
+                    // Scroll to section if exists
+                    const sectionIndex = sections.findIndex(s => s.dateKey === day.dateString);
+                    if (sectionIndex !== -1) {
+                      setTimeout(() => {
+                        sectionListRef.current?.scrollToLocation({
+                          sectionIndex,
+                          itemIndex: 0,
+                          animated: true,
+                          viewOffset: 80 // Offset for header
+                        });
+                      }, 500);
+                    }
                   }}
                   markedDates={{
                     [targetDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#6C5CE7' }
@@ -421,6 +460,7 @@ export default function JournalScreen() {
                   theme={{
                     arrowColor: '#6C5CE7',
                     todayTextColor: '#6C5CE7',
+                    selectedDayBackgroundColor: '#6C5CE7',
                   }}
                 />
               </View>
@@ -432,7 +472,7 @@ export default function JournalScreen() {
             {!isTargetToday && (
               <View style={styles.dateBadge}>
                 <Text style={styles.dateBadgeText}>
-                  Pour : {targetDate.toLocaleDateString(i18n.language)}
+                  {t('journal.for_date')} {formatDate(targetDate, i18n.language)}
                 </Text>
                 <TouchableOpacity onPress={() => setTargetDate(new Date())}>
                   <Ionicons name="close-circle" size={16} color="#FFF" style={{ marginLeft: 5 }} />
@@ -490,22 +530,33 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1
   },
-  entryCard: {
+  entryCardWrapper: {
     backgroundColor: '#FFF',
     marginHorizontal: 20,
     marginBottom: 12,
-    padding: 15,
     borderRadius: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F0F0F0'
+    borderColor: '#F0F0F0',
+    overflow: 'hidden'
+  },
+  entryCard: {
+    backgroundColor: '#FFF',
+    padding: 15,
+  },
+  deleteAction: {
+    backgroundColor: '#FF7675',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    marginBottom: 12,
+    marginRight: 20,
+    borderRadius: 15,
+    height: '100%'
   },
   entryText: {
     flex: 1,

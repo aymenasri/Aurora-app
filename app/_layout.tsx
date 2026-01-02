@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../i18n'; // Ton import de traduction
 
 export default function RootLayout() {
@@ -34,7 +35,7 @@ export default function RootLayout() {
         router.replace('/(tabs)');
       } else {
         // Si nouveau -> Go Onboarding
-       router.replace('/(onboarding)');
+        router.replace('/(onboarding)');
       }
     }
   }, [isLoading, hasSeenOnboarding]);
@@ -50,10 +51,12 @@ export default function RootLayout() {
 
   // 3. Définition des écrans
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {/* C'est ici que tu avais l'erreur : il faut préciser "/index" */}
-      <Stack.Screen name="(onboarding)/index" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* C'est ici que tu avais l'erreur : il faut préciser "/index" */}
+        <Stack.Screen name="(onboarding)/index" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </GestureHandlerRootView>
   );
 }

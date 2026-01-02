@@ -346,3 +346,24 @@ Ajout d'un bouton de dÃ©connexion dans l'en-tÃªte du Dashboard (icÃ´ne "log-out-
     }
   };
 ```
+
+### 6. Onglet Objectif (Dédié) & Internationalisation
+**Date**: 01/01/2026
+**Fichiers Modifiés**: pp/(tabs)/goals.tsx, pp/(tabs)/index.tsx, constants/quotes.ts, i18n/*
+
+**Description**:
+- Création d'un onglet dédié aux objectifs pour un suivi détaillé.
+- Ajout de citations dynamiques multilingues.
+- Support complet de l'Arabe (RTL readiness, traductions).
+
+**Fonctionnement**:
+- **Onglet Objectif** :
+  - **Vue**: Calandrier des succès (eact-native-calendars) + Stats.
+  - **Navigation**: Accessible via la TabBar et le Widget Dashboard.
+- **Citations Dynamiques** :
+  - Rotation toutes les 5s avec animation fade-in/out (eact-native-reanimated).
+  - Source centralisée : constants/quotes.ts (FR/EN/AR).
+- **Internationalisation** :
+  - Structuration optimisée des fichiers JSON (correction des nids 'dashboard.goals').
+  - Traduction intégrale (Icones, Titres, Dialogues).
+

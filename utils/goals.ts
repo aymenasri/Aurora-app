@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type GoalCategory = 'Santé Mentale' | 'Santé Physique' | 'Carrière' | 'Développement Personnel' | 'Loisirs' | 'Autre';
+export type GoalCategory = 'mental' | 'physical' | 'career' | 'personal' | 'hobbies' | 'other';
 
 export const GOAL_CATEGORIES: GoalCategory[] = [
-    'Santé Mentale',
-    'Santé Physique',
-    'Carrière',
-    'Développement Personnel',
-    'Loisirs',
-    'Autre'
+    'mental',
+    'physical',
+    'career',
+    'personal',
+    'hobbies',
+    'other'
 ];
 
 export interface SmartGoal {
@@ -46,7 +46,7 @@ export const getGoals = async (): Promise<SmartGoal[]> => {
             const aNewGoal: SmartGoal = {
                 ...oldGoal,
                 id: generateId(),
-                category: 'Autre' // Default category for migration
+                category: 'other' // Default category for migration
             };
             // Save to new list
             await AsyncStorage.setItem(GOALS_KEY, JSON.stringify([aNewGoal]));
@@ -84,6 +84,8 @@ export const addGoal = async (goalData: Omit<SmartGoal, 'id' | 'startDate' | 'ch
         return null;
     }
 };
+
+export const setSmartGoal = addGoal;
 
 export const updateGoal = async (updatedGoal: SmartGoal): Promise<void> => {
     try {

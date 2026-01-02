@@ -21,6 +21,7 @@ import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 
 // 1. On importe le Hook
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '../../utils/date';
 import { setSmartGoal } from '../../utils/goals';
 import { requestNotificationPermissions, scheduleDailyReminder } from '../../utils/notifications';
 
@@ -28,7 +29,7 @@ const TOTAL_STEPS = 5;
 
 export default function OnboardingScreen() {
   // 2. On initialise le Hook
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -218,7 +219,7 @@ export default function OnboardingScreen() {
                     style={styles.dateButton}
                   >
                     <Text style={styles.dateButtonText}>
-                      {form.deadline.toLocaleDateString()}
+                      {formatDate(form.deadline, i18n.language)}
                     </Text>
                     <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
                   </TouchableOpacity>
